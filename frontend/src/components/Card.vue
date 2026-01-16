@@ -10,7 +10,11 @@
 		averageScore?: number | null
 	}
 
-	const props = defineProps<{ anime: Anime }>()
+	const props = defineProps<{
+		anime: Anime
+		relationType?: string
+	}>()
+
 
 	const posterUrl = computed<string>(() => {
 		return props.anime.cover_image_url ?? '/img/placeholder.png'
@@ -28,15 +32,26 @@
 			class="poster-link"
 			@click="console.log('CLICK', props.anime.id)"
 			>
-		<article class="card">
-			<div class="poster">
-			<img
-				:src="posterUrl"
-				:alt="props.anime.title?.romaji || 'Аниме'"
-				loading="lazy"
-				@error="onImageError"
-			/>
-			</div>
+			<article class="card">
+				<div class="poster">
+
+					<!-- RELATION TYPE -->
+					<span
+						v-if="relationType"
+						class="relation-badge"
+						:class="relationType.toLowerCase()"
+					>
+						{{ relationType.replace('_', ' ') }}
+					</span>
+
+					<img
+						:src="posterUrl"
+						:alt="props.anime.title?.romaji || 'Аниме'"
+						loading="lazy"
+						@error="onImageError"
+					/>
+				</div>
+
 		
 			<div class="info">
 			<h3 class="title">
@@ -105,6 +120,42 @@
 	
 	.score {
 	  font-weight: 600;
-	  color: #a0d911;
 	}
+	.poster {
+		position: relative;
+	}
+
+	.relation-badge {
+		position: absolute;
+		top: 1px;
+		left: 8px;
+		padding: 4px 8px;
+		font-size: 0.65rem;
+		font-weight: 600;
+		border-radius: 999px;
+		text-transform: uppercase;
+		backdrop-filter: blur(12px);
+		background: rgba(99, 102, 241, 0.85);
+		color: #fff;
+		z-index: 2;
+	}
+
+	/* Цвета по типу связи */
+	.relation-badge.prequel {
+		background: linear-gradient(135deg, #6366f1, #818cf8);
+	}
+
+	.relation-badge.sequel {
+		background: linear-gradient(135deg, #22c55e, #4ade80);
+	}
+
+	.relation-badge.side_story {
+		background: linear-gradient(135deg, #f59e0b, #fbbf24);
+	}
+
+	.relation-badge.alternative {
+		background: linear-gradient(135deg, #ec4899, #f472b6);
+	}
+
+	  
 	</style>

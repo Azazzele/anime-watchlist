@@ -7,11 +7,14 @@
 			<h2>Jukey</h2>	
 		</div>
 		<div class='wrapper_conteiner'>
-			<ol class='list'>
-				<li><a href="">Главная</a></li>
+			<ul class='list'>
+				<li><a href="/">Главная</a></li>
 				<li><a href="">Аниме</a></li>
-				<li><a href="">Манга/Ранобэ</a></li>
-			</ol>
+				<li><a href="">Манга</a></li>
+				<li><a href="">Ранобэ</a></li>
+				<li><a href="">Новеллы</a></li>
+				<li><a href="">Форум</a></li>
+			</ul>
 		</div>
 		<div class="search">
 			<span class="material-symbols-outlined search-icon">
@@ -21,6 +24,7 @@
 		</div>
 		<div class="auth">
 			<button>Вход</button>
+			<button>Регистрация</button>
 		</div>
 	</nav>
 </template>
@@ -31,11 +35,14 @@
 	/* ===== SEARCH ===== */
 .search {
 	display: flex;
+	left: 0;
+	width: 640px;
 	align-items: center;
+	justify-content: left;
 	gap: 8px;
 	padding: 6px 12px;
 	border-radius: 12px;
-	border: 1px solid rgba(139, 92, 246, 0.3);
+	border: 1.5px solid var(--text-main)
 }
 
 .search-icon {
@@ -51,6 +58,7 @@
 	font-size: 14px;
 	width: 160px;
 	font-family: inherit;
+	
 }
 
 .search input::placeholder {

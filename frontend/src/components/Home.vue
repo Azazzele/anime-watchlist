@@ -1,7 +1,7 @@
 <script setup>
   import { ref, onMounted } from 'vue'
   import Card from './Card.vue'
-  import CharacterBithday from './CharacterBithday.vue'  // ← твой компонент с ДР персонажей
+  import CharacterBithday from './CharacterBithday.vue' 
   
   const seasonName = ref('')
   const seasonYear = ref('')

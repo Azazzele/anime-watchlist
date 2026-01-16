@@ -4,40 +4,14 @@ from typing import List
 from app.services.anilist_service import anilist_query
 from app.models.responses import CharacterBirthday
 import logging
+from app.core.graphql import gql
+
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/characters", tags=["characters"])
 
-TODAY_BIRTHDAYS_QUERY = """
-query ($perPage: Int, $sort: [CharacterSort]) {
-  Page(page: 1, perPage: $perPage) {
-    characters(
-      isBirthday: true,
-      sort: $sort
-    ) {
-      id
-      name {
-        full
-        native
-      }
-      image {
-        large
-        extraLarge
-      }
-      favourites
-      media(perPage: 1) {
-        nodes {
-          title {
-            romaji
-            english
-          }
-        }
-      }
-    }
-  }
-}
-"""
+TODAY_BIRTHDAYS_QUERY = gql("today_bithday")
 
 @router.get("/today-birthdays", response_model=List[CharacterBirthday])
 async def get_today_birthdays(per_page: int = 8):

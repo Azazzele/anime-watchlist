@@ -1,53 +1,46 @@
-from fastapi import APIRouter
-from app.services.anilist_service import anilist_query
-from app.models.responses import MediaShort
-from typing import List
-from enum import Enum
 from datetime import datetime, timezone
+from enum import Enum
+from typing import List
 import logging
 
-logger = logging.getLogger(__name__)
+from fastapi import APIRouter
 
+from app.core.graphql import gql
+from app.models.responses import MediaShort
+from app.services.anilist_service import anilist_query
+
+
+# GraphQL queries
+CURRENT_SEASON_QUERY = gql("current_season")
+
+
+# Enums
 class MediaSeasonEnum(str, Enum):
     WINTER = "WINTER"
     SPRING = "SPRING"
     SUMMER = "SUMMER"
     FALL = "FALL"
 
-router = APIRouter(prefix="/season", tags=["season"])
-CURRENT_SEASON_QUERY = """
-query ($season: MediaSeason, $seasonYear: Int, $perPage: Int) {
-  Page(page: 1, perPage: $perPage) {
-    media(
-      type: ANIME
-      season: $season
-      seasonYear: $seasonYear
-      sort: POPULARITY_DESC
-    ) {
-      id
-      title {
-        romaji
-        english
-      }
-      format
-      coverImage {
-        large
-        extraLarge
-      }
-      type
-      averageScore
-      seasonYear
-      status               
-    }
-  }
-}
-"""
-@router.get("/current", response_model=List[MediaShort])
-async def get_current_season_anime(limit: int = 8):
+
+# Router
+router = APIRouter(
+    prefix="/season",
+    tags=["season"],
+)
+
+logger = logging.getLogger(__name__)
+
+
+@router.get(
+    "/current",
+    response_model=List[MediaShort],
+)
+async def get_current_season_anime(limit: int = 8) -> List[MediaShort]:
     now = datetime.now(timezone.utc)
     year = now.year
     month = now.month
 
+    # Determine season (AniList rules)
     if month in (1, 2, 3):
         season = MediaSeasonEnum.WINTER
     elif month in (4, 5, 6):
@@ -60,19 +53,32 @@ async def get_current_season_anime(limit: int = 8):
     variables = {
         "season": season.value,
         "seasonYear": year,
-        "perPage": limit
+        "perPage": limit,
+        "page": 1,
     }
 
     try:
-          data = await anilist_query(CURRENT_SEASON_QUERY, variables)
-          media_list = data.get("Page", {}).get("media") or []
+        data = await anilist_query(
+            CURRENT_SEASON_QUERY,
+            variables,
+        )
 
-          if not media_list:
-              return []  # или сообщение, если хочешь
+        media_list = data.get("Page", {}).get("media", [])
 
-          # Pydantic сам всё заполнит, включая cover_image_url
-          return [MediaShort.model_validate(item) for item in media_list]
+        if not media_list:
+            logger.warning(
+                "No media found for %s %s",
+                season.value,
+                year,
+            )
+            return []
 
-    except Exception as e:
-        logger.error("Season fetch error", exc_info=True)
+        # Pydantic fills computed fields automatically
+        return [
+            MediaShort.model_validate(item)
+            for item in media_list
+        ]
+
+    except Exception:
+        logger.exception("Error fetching current season anime")
         return []

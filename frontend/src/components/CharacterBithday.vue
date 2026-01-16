@@ -33,7 +33,6 @@
 		</div>
 		<div v-else class="grid">
 		  <article v-for="char in birthdays" :key="char.id" class="card">
-			<!-- Ссылка на персонажа (оборачивает фото + имя) -->
 			<a
 			  :href="`https://anilist.co/character/${char.id}`"
 			  target="_blank"

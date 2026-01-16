@@ -1,7 +1,8 @@
 <script setup lang="ts">
-  import { ref, watch, onMounted, onUnmounted } from 'vue'
+  import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
   import { useRoute } from 'vue-router'
-  
+  import RelationsRow from './RelationsTimeline.vue'
+
   const route = useRoute()
   
   const anime = ref<any>(null)
@@ -21,6 +22,16 @@
     isPosterOpen.value = false
     document.body.style.overflow = ''
   }
+  const characters = computed(() => {
+  if (!anime.value?.characters?.edges) return []
+
+  return anime.value.characters.edges
+    .filter(
+      (c: any) => c.role === 'MAIN' || c.role === 'SUPPORTING'
+    )
+    .slice(0, 6)
+})
+ 
 
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') closePoster()
@@ -113,99 +124,78 @@
         />
   
         <!-- MAIN INFO -->
-        <div class="main-info">
-          <!-- LEFT COLUMN -->
-          <div class="poster-column">
-            <img
-              :src="anime.coverImage?.extraLarge"
-              class="cover clickable"
-              @click="openPoster"
-            />
-  
-            <div class="poster-actions">
-      <!-- DROPDOWN -->
-      <div class="status-dropdown">
-        <button class="action-btn" @click.stop="toggleMenu">
-          <span class="material-symbols-outlined">expand_more</span>
-          {{ userStatusLabel(userStatus) }}
-        </button>
+        <div class="main-info-v2">
+  <!-- POSTER -->
+  <div class="poster-wrap">
+    <img
+      :src="anime.coverImage?.extraLarge"
+      class="poster"
+      @click="openPoster"
+    />
+  </div>
 
-        <div v-if="menuOpen" class="dropdown-menu">
-          <button @click="setStatus('watching')">
-            <span class="material-symbols-outlined">play_arrow</span>
-            Смотрю
-          </button>
-
-          <button @click="setStatus('planned')">
-            <span class="material-symbols-outlined">schedule</span>
-            В планах
-          </button>
-
-          <button @click="setStatus('completed')">
-            <span class="material-symbols-outlined">done</span>
-            Просмотрено
-          </button>
-
-          <button @click="setStatus('paused')">
-            <span class="material-symbols-outlined">pause</span>
-            Отложено
-          </button>
-
-          <button @click="setStatus('dropped')">
-            <span class="material-symbols-outlined">close</span>
-            Заброшено
-          </button>
-        </div>
-      </div>
-
-      <!-- FAVORITE (ОТДЕЛЬНО) -->
-      <button
-        class="fav-btn"
-        :class="{ active: favorite }"
-        @click="toggleFavorite"
-      >
-        <span class="material-symbols-outlined">
-          {{ favorite ? 'star' : 'star_outline' }}
-        </span>
-      </button>
+  <!-- CONTENT -->
+  <div class="content-wrap">
+    <!-- TITLE -->
+    <div class="title-row">
+      <h1>{{ anime.title.romaji }}</h1>
+      <span class="year">
+        {{ anime.startDate?.year }}–{{ anime.endDate?.year || '...' }}
+      </span>
     </div>
-          </div>
-  
-          <!-- RIGHT COLUMN -->
-          <div class="details">
-            <h2>{{ anime.title.romaji }}</h2>
-            <p v-if="anime.title.english" class="alt-title">
-              {{ anime.title.english }}
-            </p>
-  
-            <div class="tags">
-              <span class="tag">{{ anime.format || '?' }}</span>
-              <span class="tag">{{ anime.status || '?' }}</span>
-              <span class="tag">{{ anime.seasonYear || '?' }}</span>
-              <span class="tag score">
-                {{ anime.averageScore ? (anime.averageScore / 10).toFixed(1) : '?' }}
-              </span>
-            </div>
-  
-            <p class="description" v-html="anime.description || 'Описание отсутствует'" />
-  
-            <div class="genres">
-              <span v-for="g in anime.genres" :key="g" class="genre">{{ g }}</span>
-            </div>
-  
-            <div class="studios">
-              Студии:
-              {{ anime.studios.nodes?.map(s => s.name).join(', ') || '?' }}
-            </div>
-          </div>
-        </div>
-  
+
+    <p v-if="anime.title.english" class="alt-title">
+      {{ anime.title.english }}
+    </p>
+
+    <!-- META STRIP -->
+    <div class="meta-strip">
+      <span>{{ anime.format }}</span>
+      <span>{{ anime.status }}</span>
+      <span>{{ anime.episodes || '?' }} ep</span>
+      <span>{{ anime.averageScore ? (anime.averageScore / 10).toFixed(1) : '—' }} ★</span>
+    </div>
+    
+    <!-- ACTION ICONS -->
+    <div class="actions-row">
+      <button title="В избранное"><span class="material-symbols-outlined">star</span></button>
+      <button title="Комментарий"><span class="material-symbols-outlined">comment</span></button>
+      <button title="Отзыв"><span class="material-symbols-outlined">rate_review</span></button>
+      <button title="В плейлист"><span class="material-symbols-outlined">playlist_add</span></button>
+      <button title="Поделиться"><span class="material-symbols-outlined">share</span></button>
+      <button title="Смотреть"><span class="material-symbols-outlined">play_circle</span></button>
+    </div>
+    <div class='genres'>
+        <strong>Жанры:</strong>
+        <div class="genre">{{ anime.genres.join(', ') }}</div>
+      </div>
+    <!-- DESCRIPTION -->
+    <div class="description" v-html="anime.description"></div>
+
+    <!-- FOOTER -->
+    <div class="footer-info">
+      <div class="studios">
+        <strong>Студии:</strong>
+        {{ anime.studios.nodes.map(s => s.name).join(', ') }}
+      </div>
+    
+    </div>
+  </div>
+</div>
+
+
+        <!-- RELATIONS -->
+        <RelationsRow
+          v-if="anime.relations?.edges?.length"
+          :relations="anime.relations"
+        />
+          
         <!-- CHARACTERS -->
         <section class="characters">
           <h2 class='title_header'>Персонажи</h2>
           <div class="char-grid">
             <div
-              v-for="edge in anime.characters.edges"
+              v-for="edge in characters"
               :key="edge.node.id"
               class="char-item"
             >
@@ -229,14 +219,14 @@
   
   <style scoped>
   .anime-detail {
-    background: radial-gradient(1200px 600px at top, #121526, #07080f);
+
     min-height: 100vh;
     color: #e6e6eb;
   }
   
   /* BANNER */
   .banner {
-    height: 360px;
+    height: 320px;
     background-size: cover;
     background-position: center;
   }
@@ -289,7 +279,7 @@
   }
   
   .action-btn.active {
-    background: linear-gradient(135deg, #6366f1, #a855f7);
+    background: var(--accent-primary);
   }
   
   .fav-btn {
@@ -303,8 +293,8 @@
   
   /* DETAILS */
   .details {
-    background: rgba(22, 24, 43, 0.55);
-    backdrop-filter: blur(18px);
+    position: relative;
+    backdrop-filter: blur(34px);
     border-radius: 24px;
     padding: 32px;
   }
@@ -329,6 +319,7 @@
   
   /* CHARACTERS */
   .characters {
+    width: 1480px;
     margin: 80px auto;
     padding: 0 32px;
   }
@@ -338,30 +329,220 @@
     width: 100%;
     flex-wrap: wrap;
     gap: 16px;
-    justify-content: center;
+    justify-content:baseline;
   }
-  
+  .char-item{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
   .char-item img {
-    width: 200px;
+    width: 220px;
+    height: 340px;
     border-radius: 12px;
   }
-  
-  /* POSTER OVERLAY */
-  .poster-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(10,5,20,0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
+  .char-item p{
+    margin-top: .6em;
   }
-  
-  .poster-full {
-    max-width: 90vw;
-    max-height: 90vh;
-    border-radius: 18px;
-    cursor: zoom-out;
-  }
+
+.hero-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.hero-poster img {
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.85);
+}
+
+.hero-info {
+  backdrop-filter: blur(30px);
+  background: rgba(20, 22, 40, 0.6);
+  border-radius: 28px;
+  padding: 32px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  margin: 18px 0;
+}
+.action-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  border: none;
+  color: #dfe2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-2px);
+}
+
+.icon-btn.active {
+  background: var(--accent-primary);
+  color: #ffd166;
+}
+
+.icon-btn span {
+  font-size: 22px;
+}
+.main-info-v2 {
+  max-width: 1860px;
+  margin: -120px auto 0;
+  padding: 32px;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 48px;
+  background: rgba(15, 18, 32, 0.55);
+  backdrop-filter: blur(30px);
+  border-radius: 28px;
+}
+
+/* POSTER */
+.poster-wrap {
+  position: relative;
+}
+.poster {
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  cursor: zoom-in;
+}
+
+/* CONTENT */
+.title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.title-row h1 {
+  font-size: 2.1rem;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+
+.year {
+  font-size: .95rem;
+  opacity: .5;
+}
+
+
+.alt-title {
+  margin-top: 4px;
+  opacity: 0.6;
+}
+
+/* META */
+.meta-strip {
+  display: flex;
+  gap: 14px;
+  margin: 20px 0;
+  font-size: .85rem;
+}
+
+.meta-strip span {
+  padding: 6px 14px;
+  background: rgba(255,255,255,.05);
+  border-radius: 10px;
+  color: #cfd2ff;
+}
+
+
+/* ACTIONS */
+.actions-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.actions-row button {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+  color: #cfd2ff;
+}
+
+.actions-row button:hover {
+  background: rgba(255,255,255,.1);
+}
+
+
+/* DESCRIPTION */
+.description {
+  margin-top: 8px;
+  line-height: 1.75;
+  color: #d8d9e6;
+}
+
+
+/* FOOTER */
+.footer-info {
+  margin-top: 26px;
+  font-size: .85rem;
+  color: #9ca3af;
+}
+.details {
+  position: relative; /* ОБЯЗАТЕЛЬНО */
+}
+
+/* студия в углу */
+.studios {
+  position: absolute;
+  top: 32px;
+  right: 32px;
+  font-size: 1.75rem;
+  color: #aab0ff;
+  opacity: 0.85;
+  border-radius: 15px;
+  padding: 12px 24px;
+  backdrop-filter: blur(8px);
+}
+.genres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+.genre {
+  font-size: 1.02rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+
+  background: linear-gradient(
+    135deg,
+    rgba(99,102,241,0.18),
+    rgba(168,85,247,0.18)
+  );
+
+  color: #c7c9ff;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
   </style>
   

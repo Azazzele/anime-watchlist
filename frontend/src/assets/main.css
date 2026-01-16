@@ -32,22 +32,26 @@ h2,h3,h4{
 a{
 	text-decoration: none;
 }
-
+li a{
+	font-weight: bolder;
+}
 a:hover{
 	color: var(--accent-primary);
 }
 
 .conteiner{
-	max-width: 1256px;
+	max-width: 1656px;
 	margin: 0 auto;
 	display: flex;
 	padding: 1em;
 	align-items: center;
+	justify-content: space-around;
 }
 .wrapper_conteiner{
-	width: 100%;
+	margin-left: 1em;
+	width: 30%;
 	display: inherit;
-	justify-content: center;
+	justify-content: start;
 }
 .list{
 	display: inherit;
