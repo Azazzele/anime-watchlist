@@ -44,6 +44,18 @@ async def get_media_details(
                 status_code=404,
                 detail="Аниме не найдено",
             )
+        
+                # --- Обработка поля `type` ---
+        if "type" not in media or media["type"] not in ["ANIME", "MANGA"]:
+            # Если тип отсутствует или невалиден — принудительно ставим "ANIME"
+            # (или логируем предупреждение и выбираем дефолт)
+            media["type"] = "ANIME"
+            logger.info(
+                "Forced type=ANIME for media_id=%s (original type=%s)",
+                media_id,
+                media.get("type"),
+            )
+        
 
         return FullAnimeDetails.model_validate(media)
 

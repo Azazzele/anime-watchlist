@@ -8,13 +8,10 @@ query GetAnimeDetails($id: Int!) {
       native
     }
 
-    startDate {
-      year
-    }
-    endDate {
-      year
-    }
+    startDate { year }
+    endDate { year }
 
+    description(asHtml: true)
     format
     status
     season
@@ -38,6 +35,35 @@ query GetAnimeDetails($id: Int!) {
         name
       }
     }
+  
+    trailer {
+      id
+      site
+      thumbnail
+    }
+
+    streamingEpisodes {
+      title
+      thumbnail
+      site
+      url
+    }
+
+    staff(sort: [RELEVANCE, FAVOURITES_DESC]) {
+      edges {
+        role
+        node {
+          id
+          name {
+            full
+            native
+          }
+          image {
+            large
+          }
+        }
+      }
+    }
 
     relations {
       edges {
@@ -59,10 +85,7 @@ query GetAnimeDetails($id: Int!) {
       }
     }
 
-    characters(
-      perPage: 6
-      sort: [RELEVANCE, FAVOURITES_DESC]
-    ) {
+    characters(perPage: 6, sort: [RELEVANCE, FAVOURITES_DESC]) {
       edges {
         role
         node {

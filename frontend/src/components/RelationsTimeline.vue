@@ -1,5 +1,5 @@
 <script setup lang="ts">
-	import { computed } from 'vue'
+	import { computed, ref } from 'vue'
 	
 	interface Relation {
 	  relationType: string
@@ -7,8 +7,13 @@
 		id: number
 		format?: string
 		startDate?: { year?: number }
-		title: { romaji?: string; english?: string }
-		coverImage?: { large?: string }
+		title: {
+		  romaji?: string
+		  english?: string
+		}
+		coverImage?: {
+		  large?: string
+		}
 	  }
 	}
 	
@@ -16,205 +21,242 @@
 	  relations: { edges: Relation[] }
 	}>()
 	
-	const items = computed(() =>
+	const expanded = ref(false)
+	
+	const sortedItems = computed(() =>
 	  [...props.relations.edges].sort(
 		(a, b) =>
 		  (a.node.startDate?.year ?? 9999) -
 		  (b.node.startDate?.year ?? 9999)
 	  )
 	)
+	
+	const visibleItems = computed(() =>
+	  expanded.value ? sortedItems.value : sortedItems.value.slice(0, 5)
+	)
 	</script>
 	
-	<template>
-		<section class="relations-row">
-		  <h2 class="title">Связанное</h2>
-	  
-		  <div class="timeline">
-			<div
-			  v-for="rel in items"
-			  :key="rel.node.id"
-			  class="timeline-item"
-			>
-			  <!-- линия + точка -->
-			  <div class="line-wrap">
-				<span class="year">
-				  {{ rel.node.startDate?.year || '—' }}
-				</span>
-				<span class="dot"></span>
-			  </div>
-	  
-			  <!-- карточка -->
-			  <router-link
+		
+		<template>
+		<section class="relations-table">
+			<h2 class="relations-table__title">Связанное</h2>
+		
+		
+			<div class="table-container">
+			<table class="relations-table__table">
+				<thead>
+				<tr>
+					<th>Постер</th>
+					<th>Название</th>
+					<th>Формат</th>
+					<th>Тип</th>
+					<th>Год</th>
+				</tr>
+				</thead>
+	<tbody>
+		<tr
+			v-for="rel in visibleItems"
+			:key="rel.node.id"
+			class="table-row-link"
+		>
+			<td class="poster-cell">
+			<img
+				:src="rel.node.coverImage?.large"
+				alt=""
+				class="poster-img"
+			/>
+			</td>
+
+			<td class="title-cell">
+			<router-link
 				:to="`/anime/${rel.node.id}`"
-				class="card-wrapper"
-			  >
-				<span class="badge">
-				  {{ rel.relationType }}
-				</span>
-	  
-				<div class="card">
-				  <img
-					:src="rel.node.coverImage?.large"
-					class="cover"
-				  />
-	  
-				  <div class="info">
-					<h3>
-					  {{ rel.node.title.romaji || rel.node.title.english }}
-					</h3>
-	  
-					<div class="meta">
-					  <span>{{ rel.node.format || '?' }}</span>
-					</div>
-				  </div>
-				</div>
-			  </router-link>
+				class="row-link"
+			>
+				{{ rel.node.title.romaji || rel.node.title.english }}
+			</router-link>
+			</td>
+
+			<td class="format-cell">
+			{{ rel.node.format || '—' }}
+			</td>
+
+			<td class="type-cell">
+			<span class="badge">{{ rel.relationType }}</span>
+			</td>
+
+			<td class="year-cell">
+			{{ rel.node.startDate?.year || '—' }}
+			</td>
+		</tr>
+		</tbody>
+
+		<!-- КНОПКА -->
+		<div
+		v-if="sortedItems.length > 5"
+		class="show-more-wrap"
+		>
+		<button
+			class="show-more-btn"
+			@click="expanded = !expanded"
+		>
+			{{ expanded ? 'Скрыть' : 'Показать всё' }}
+		</button>
+		</div>
+
+			</table>
 			</div>
-	  
-			<!-- общая линия -->
-			<div class="base-line"></div>
-		  </div>
 		</section>
-	  </template>
-	  
-	
-	<style scoped>
-.relations-row {
-  max-width: 1600px;
-  margin: 80px auto;
-  padding: 0 32px;
-}
+		</template>
+		
+		<style scoped>
+		.relations-table {
+			margin: 40px 0;
+			padding: 0 16px;
+		}
+		
+		.relations-table__title {
+			font-size: 1.3rem;
+			font-weight: 600;
+			color: #e2e8f0;
+			margin-bottom: 16px;
+			text-align: left;
+		}
+		
+		.table-container {
+			overflow-x: auto;
+			border-radius: 12px;
+			box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+		}
+		
+		.relations-table__table {
+			width: 100%;
+			border-collapse: collapse;
+			min-width: 700px;
+		}
+		
+		.relations-table__table th,
+		.relations-table__table td {
+			padding: 12px 16px;
+			text-align: left;
+			border-bottom: 1px solid #334155;
+		}
+		
+		
+		.relations-table__table th {
+			font-size: 0.8rem;
+			font-weight: 600;
+			color: #94a3b8;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+		
+		.poster-cell {
+			width: 120px;
+			padding: 12px 0;
+		}
+		
+		.poster-img {
+			width: 100%;
+			max-width: 100px;
+			aspect-ratio: 2 / 3;
+			object-fit: cover;
+			border-radius: 8px;
+			display: block;
+		}
+		
+		.title-cell {
+			font-size: 0.9rem;
+			color: #f1f5f9;
+			font-weight: 500;
+			max-width: 200px;
+		}
+		
+		.format-cell {
+			font-size: 0.85rem;
+			color: #cbd5e1;
+			font-weight: 400;
+			width: 100px;
+		}
+		
+		.type-cell {
+			width: 120px;
+		}
+		
+		.badge {
+			display: inline-block;
+			padding: 4px 10px;
+			border-radius: 20px;
+			font-size: 0.65rem;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			color: white;
+		}
+		
+		
+		.year-cell {
+		width: 80px;
+		font-size: 0.85rem;
+		color: #94a3b8;
+		}
+		
+		/* Адаптивность */
+		@media (max-width: 768px) {
+		.relations-table {
+			padding: 0 8px;
+		}
+		
+		.table-container {
+			border-radius: 8px;
+		}
+		
+		.relations-table__table th,
+		.relations-table__table td {
+			padding: 10px 12px;
+			font-size: 0.85rem;
+		}
+		
+		.poster-cell {
+			width: 90px;
+		}
+		
+		.poster-img {
+			max-width: 80px;
+		}
+		
+		.title-cell {
+			max-width: 160px;
+		}
+		
+		.format-cell,
+		.type-cell,
+		.year-cell {
+			width: auto;
+		}
+		}
+		.show-more-wrap {
+			display: flex;
+			justify-content: center;
+			margin-top: 12px;
+		}
 
-.title {
-  font-size: 1.5rem;
-  margin-bottom: 32px;
-}
+		.show-more-btn {
+			background: transparent;
+			border: 1px solid rgba(255, 255, 255, 0.2);
+			color: #e5e7eb;
 
-/* контейнер таймлайна */
-.timeline {
-  position: relative;
-  display: flex;
-  gap: 48px;
-  padding-top: 40px;
-  overflow-x: auto;
-}
+			padding: 6px 14px;
+			border-radius: 8px;
 
-/* базовая линия */
-.base-line {
-  position: absolute;
-  top: 28px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: #3a3f4b;
-}
+			font-size: 0.8rem;
+			cursor: pointer;
 
+			transition: all 0.2s ease;
+		}
 
-/* элемент */
-.timeline-item {
-  position: relative;
-  min-width: 200px;
-}
+		.show-more-btn:hover {
+			border-color: rgba(255, 255, 255, 0.4);
+		}
 
-/* линия + точка */
-.line-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.year {
-  font-size: 0.7rem;
-  color: #9aa0ad;
-  margin-bottom: 6px;
-  letter-spacing: 0.04em;
-}
- 
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #c9ccd6;
-}
-
-
-/* карточка */
-.card-wrapper {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-
-.badge {
-  position: absolute;
-  top: 46px;
-  left: 12px;
-  font-size: 0.6rem;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  color: white;
-  z-index: 2;
-}
-
-.card {
-	width: 190px;
-	background: #161922;
-	border-radius: 14px;
-	overflow: hidden;
-	transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.card:hover {
-  transform: translateY(-6px);
-  background: #1c2030;
-}
-
-.cover {
-  width: 100%;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
-}
-
-.info {
-  padding: 12px;
-}
-
-.info h3 {
-  font-size: 0.85rem;
-  line-height: 1.35;
-  height: 2.7em;
-  overflow: hidden;
-}
-
-.meta {
-  font-size: 0.7rem;
-  opacity: 0.7;
-  margin-top: 6px;
-}
-.year-head {
-  position: relative;
-}
-
-.year-head::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -200px;
-  right: -200px;
-  height: 2px;
-  background: rgba(99, 102, 241, 0.2);
-  z-index: -1;
-}
-.line-wrap::after {
-  content: '';
-  width: 1px;
-  height: 16px;
-  background: #3a3f4b;
-  margin-top: 6px;
-}
-
-	</style>
-	
+		</style>
+		

@@ -1,16 +1,19 @@
 <script setup>
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, computed  } from 'vue'
   import Card from './Card.vue'
   import CharacterBithday from './CharacterBithday.vue' 
   
   const seasonName = ref('')
   const seasonYear = ref('')
-  
+  const shuffledAnimes = computed(() => {
+  return [...animes.value].sort(() => Math.random() - 0.5)
+})
+
   function getCurrentSeason() {
     const now = new Date()
     const month = now.getMonth() + 1
     const year = now.getFullYear()
-  
+    
     let season = ''
     if ([12, 1, 2].includes(month)) season = 'Winter'
     else if ([3, 4, 5].includes(month)) season = 'Spring'
@@ -61,20 +64,21 @@
       <div v-else-if="error" class="error">{{ error }}</div>
   
       <div v-else>
-        <!-- Уведомление о начале сезона -->
-        <div v-if="notice" class="season-notice">
-          {{ notice }}
-        </div>
-  
-        <!-- Если аниме нет -->
-        <div v-if="animes.length === 0" class="empty">
-          Пока список пустой — сезон только стартовал!
-        </div>
+          <!-- Уведомление -->
+          <div v-if="notice" class="season-notice">
+            {{ notice }}
+          </div>
+
+          <!-- Пусто ТОЛЬКО если нет notice -->
+          <div v-else-if="animes.length === 0" class="empty">
+            Пока список пустой — сезон только стартовал!
+          </div>
+
   
         <!-- Список аниме (если есть) -->
         <div v-else class="grid">
           <Card
-            v-for="anime in animes"
+            v-for="anime in shuffledAnimes"
             :key="anime.id"
             :anime="anime"
           />
