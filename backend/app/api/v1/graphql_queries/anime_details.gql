@@ -75,7 +75,6 @@ query GetAnimeDetails($id: Int!) {
           startDate { year }
           endDate { year }
           title {
-            romaji
             english
           }
           coverImage {

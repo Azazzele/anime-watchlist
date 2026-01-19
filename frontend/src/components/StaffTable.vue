@@ -1,28 +1,27 @@
 <script setup lang="ts">
 	import { computed } from 'vue'
+	import { useRouter } from 'vue-router'
 	
 	interface StaffEdge {
-	  role: string
-	  node: {
-		id: number
-		name: {
-		  full?: string
-		  native?: string
+		role: string
+		node: {
+			id: number
+			name: {
+			full?: string
+			native?: string
+			}
+			image?: {
+			large?: string
+			}
 		}
-		image?: {
-		  large?: string
 		}
-	  }
-	}
 	
 	const props = defineProps<{
 	  staff: { edges: StaffEdge[] }
 	}>()
 	
-	const items = computed(() => {
-	  return props.staff?.edges?.slice(0, 3) ?? []
-	})
-	</script>
+	const items = computed(() => props.staff?.edges?.slice(0, 3) ?? [])
+</script>
 	
 	
 
@@ -42,36 +41,39 @@
 	  
 			  <tbody>
 				<tr
-				  v-for="person in items"
-				  :key="person.node.id"
-				  class="table-row-link"
+					v-for="person in items"
+					:key="person.node.id"
+					class="table-row-link"
 				>
-				  <td class="poster-cell">
-					  <img
+					<td class="poster-cell">
+					<router-link :to="`/staff/${person.node.id}`">
+						<img
 						:src="person.node.image?.large"
 						class="poster-img"
-					  />
-				  </td>
-	  
-				  <td class="title-cell">
-					<router-link
-					  :to="`/staff/${person.node.id}`"
-					  class="row-link"
-					>
-					  {{ person.node.name.full }}
+						/>
 					</router-link>
-				  </td>
-	  
-				  <td class="role-cell">
+					</td>
+
+					<td class="title-cell">
 					<router-link
-					  :to="`/staff/${person.node.id}`"
-					  class="row-link"
+						:to="`/staff/${person.node.id}`"
+						class="row-link"
 					>
-					  {{ person.role }}
+						{{ person.node.name.full }}
 					</router-link>
-				  </td>
+					</td>
+
+					<td class="role-cell">
+					<router-link
+						:to="`/staff/${person.node.id}`"
+						class="row-link"
+					>
+						{{ person.role }}
+					</router-link>
+					</td>
 				</tr>
-			  </tbody>
+			</tbody>
+
 			</table>
 		  </div>
 		</section>

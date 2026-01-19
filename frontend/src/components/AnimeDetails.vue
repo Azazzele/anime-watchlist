@@ -271,10 +271,13 @@ const reviews = ref<Review[]>([])
               <h2>{{ anime.title?.romaji || 'Без названия' }}</h2>
             </div>
   
-            <p v-if="anime.title?.english" class="alt-title">
+            <p v-if="anime.title && anime.title.english" class="alt-title">
               {{ anime.title.english }}
             </p>
-  
+            <p v-if="anime.title && anime.title.native" class="alt-title">
+              {{ anime.title.native }}
+            </p>
+
             <div class="meta-strip">
               <span>{{ anime.format || '?' }}</span>
               <span>{{ anime.status || '?' }}</span>
@@ -368,7 +371,7 @@ const reviews = ref<Review[]>([])
             <router-link
               v-for="edge in previewCharacters"
               :key="edge.node.id"
-              :to="`/character/${edge.node.id}`"
+              :to="`/anime/${route.params.id}/character/${edge.node.id}`"
               class="char-card"
             >
               <img :src="edge.node.image?.large" alt="" />
@@ -781,10 +784,17 @@ const reviews = ref<Review[]>([])
   align-items: baseline;
   gap: 14px;
 }
-.title-row h1 {
-  font-size: 2.1rem;
+.title-row h2 {
+  width: 800px;
+  text-wrap: wrap;
+  hyphens: auto;
   font-weight: 600;
   letter-spacing: .2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* ограничивает до 3 строк */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .year {

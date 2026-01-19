@@ -10,6 +10,10 @@ class StaffName(BaseModel):
     full: Optional[str] = None
     native: Optional[str] = None
 
+class DateOfBirth(BaseModel):
+    year: Optional[int]
+    month: Optional[int]
+    day: Optional[int]
 
 class StaffImage(BaseModel):
     large: Optional[str] = None
@@ -31,9 +35,11 @@ class Staff(BaseModel):
 
 
 class Title(BaseModel):
+    userPreferred: Optional[str] = None
     romaji: Optional[str] = None
     english: Optional[str] = None
-
+    native: Optional[str] = None
+        
 class CharacterBirthday(BaseModel):
     id: int
     name_full: str
@@ -186,3 +192,35 @@ class MediaShort(BaseModel):
             f"https://s4.anilist.co/file/anilistcdn/media/anime/"
             f"cover/large/bx{self.id}.png"
         )
+class MediaMini(BaseModel):
+    id: int
+    title: Title
+    coverImage: Optional[CoverImage] = None
+    format: Optional[str] = None
+    seasonYear: Optional[int] = None
+    averageScore: Optional[int] = None
+
+class CharacterDetails(BaseModel):
+    id: int
+    name_full: str
+    name_native: Optional[str] = None
+    name_alternative: List[str] = []
+    image_large: Optional[str] = None
+    description: Optional[str] = None          
+    favourites: Optional[int] = None
+    anime: List[MediaMini] = []
+
+    age: Optional[str]
+    gender: Optional[str]
+    bloodType: Optional[str]
+    dateOfBirth: Optional[DateOfBirth]
+
+class StaffDetails(BaseModel):
+    id: int
+    name_full: str
+    name_native: Optional[str] = None
+    image_large: Optional[str] = None
+    description: Optional[str] = None
+    favourites: Optional[int] = None
+    occupations: List[str] = []
+    works: List[MediaMini] = []
