@@ -1,6 +1,9 @@
-
-query GetCurrentSeason($season: MediaSeason, $seasonYear: Int, $perPage: Int) {
-  Page(page: 1, perPage: $perPage) {
+query GetCurrentSeason($season: MediaSeason, $seasonYear: Int, $page: Int, $perPage: Int) {
+  Page(page: $page, perPage: $perPage) {
+    pageInfo {
+      total
+      hasNextPage
+    }
     media(
       type: ANIME
       season: $season
@@ -20,7 +23,7 @@ query GetCurrentSeason($season: MediaSeason, $seasonYear: Int, $perPage: Int) {
       type
       averageScore
       seasonYear
-      status               
+      status
     }
   }
 }

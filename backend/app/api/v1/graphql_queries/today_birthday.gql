@@ -1,0 +1,26 @@
+query TODAY_BIRTHDAYS_QUERY($page: Int, $perPage: Int, $sort: [CharacterSort]) {
+  Page(page: $page, perPage: $perPage) {
+    characters(
+      isBirthday: true
+      sort: $sort
+    ) {
+      id
+      name {
+        full
+        native
+      }
+      image {
+        large
+      }
+      favourites
+      media(perPage: 1) {
+        nodes {
+          title {
+            romaji
+            english
+          }
+        }
+      }
+    }
+  }
+}

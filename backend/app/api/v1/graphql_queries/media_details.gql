@@ -1,0 +1,98 @@
+query GetAnimeDetails($id: Int!, $type: MediaType) {
+  Media(id: $id, type: $type) {
+    id
+    type
+    title {
+      romaji
+      english
+      native
+      userPreferred  
+    }
+    startDate { year month day }   
+    endDate { year month day }
+    description(asHtml: false)     
+    format
+    status(version: 2)
+    season
+    seasonYear
+    episodes
+    duration
+    averageScore
+    popularity
+    favourites
+    bannerImage
+    genres
+    coverImage {
+      extraLarge
+      large
+      medium
+    }
+    studios(isMain: true) {
+      nodes {
+        name
+      }
+    }
+    trailer {
+      id
+      site
+      thumbnail
+    }
+    streamingEpisodes {
+      title
+      thumbnail
+      site
+      url
+    }
+    staff(sort: FAVOURITES_DESC, perPage: 15) {   
+      edges {
+        role
+        node {
+          id
+          name { full native }
+          image { large }
+        }
+      }
+    }
+    relations {
+      edges {
+        relationType
+        node {
+          id
+          type
+          format
+          startDate { year }
+          title {
+            romaji
+            english
+          }
+          coverImage { large }
+        }
+      }
+    }
+    characters(perPage: 6, sort: [FAVOURITES_DESC, RELEVANCE]) {
+      edges {
+        role
+        node {
+          id
+          name {
+            full
+            native
+          }
+          image {
+            large
+          }
+        }
+        voiceActors(language: JAPANESE, sort: FAVOURITES_DESC) {
+          id
+          name { full }
+          image { large }
+          languageV2
+        }
+      }
+      pageInfo {
+        total
+        hasNextPage
+      }
+    }
+  }
+}

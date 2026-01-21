@@ -4,18 +4,17 @@ from typing import List
 import logging
 import random
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.core.graphql import gql
 from app.models.responses import MediaShort
 from app.services.anilist_service import anilist_query
 
-
-# GraphQL queries
 CURRENT_SEASON_QUERY = gql("current_season")
 
+logger = logging.getLogger(__name__)
 
-# Enums
+
 class MediaSeasonEnum(str, Enum):
     WINTER = "WINTER"
     SPRING = "SPRING"
@@ -23,27 +22,20 @@ class MediaSeasonEnum(str, Enum):
     FALL = "FALL"
 
 
-# Router
 router = APIRouter(
     prefix="/season",
     tags=["season"],
 )
 
-logger = logging.getLogger(__name__)
 
+@router.get("/current", response_model=List[MediaShort])
+async def get_current_season_anime(
+    limit: int = Query(8, ge=1, le=50)
+) -> List[MediaShort]:
 
-@router.get(
-    "/current",
-    response_model=List[MediaShort],
-)
-@router.get(
-    "/current",
-    response_model=List[MediaShort],
-)
-async def get_current_season_anime(limit: int = 8) -> List[MediaShort]:
     now = datetime.now(timezone.utc)
-    year = now.year
     month = now.month
+    year = now.year   # ✅ ВАЖНО
 
     if month in (1, 2, 3):
         season = MediaSeasonEnum.WINTER
@@ -54,56 +46,49 @@ async def get_current_season_anime(limit: int = 8) -> List[MediaShort]:
     else:
         season = MediaSeasonEnum.FALL
 
-    all_media: list[dict] = []
-    page = 1
-    per_page = 50  # максимум AniList
+    variables = {
+        "season": season.value,
+        "seasonYear": year,
+        "perPage": 50,
+        "page": 1,
+    }
+
+    logger.debug(f"Season query vars: {variables}")
 
     try:
-        while True:
-            variables = {
-                "season": season.value,
-                "seasonYear": year,
-                "perPage": per_page,
-                "page": page,
-            }
+        result = await anilist_query(CURRENT_SEASON_QUERY, variables)
 
-            data = await anilist_query(
-                CURRENT_SEASON_QUERY,
-                variables,
-            )
+        data = result.get("data", {})
+        page = data.get("Page", {})
+        media = page.get("media", [])
 
-            page_data = data.get("Page", {})
-            media = page_data.get("media", [])
-
-            if not media:
-                break
-
-            all_media.extend(media)
-
-            if not page_data.get("pageInfo", {}).get("hasNextPage"):
-                break
-
-            page += 1
-
-        if not all_media:
-            logger.warning(
-                "No media found for %s %s",
-                season.value,
-                year,
-            )
+        if not media:
+            logger.warning("No media for %s %s", season.value, year)
             return []
 
-        # 🔀 НАСТОЯЩИЙ РАНДОМ
-        random.shuffle(all_media)
+        # fallback coverImage
+        for item in media:
+            if not item.get("coverImage"):
+                item["coverImage"] = {
+                    "large": f"https://img.anili.st/media/{item['id']}",
+                    "extraLarge": f"https://img.anili.st/media/{item['id']}",
+                }
 
-        # ✂️ ЛИМИТ
-        selected = all_media[:limit]
+        random.shuffle(media)
+        selected = media[:limit]
 
-        return [
-            MediaShort.model_validate(item)
-            for item in selected
-        ]
+        return [MediaShort.model_validate(item) for item in selected]
+
+    except RuntimeError as e:
+        logger.error("AniList error (current season): %s", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Ошибка при запросе к AniList"
+        )
 
     except Exception:
-        logger.exception("Error fetching current season anime")
-        return []
+        logger.exception("Internal error /season/current")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Внутренняя ошибка сервера"
+        )

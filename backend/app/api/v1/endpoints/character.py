@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, status
 import logging
+from typing import List
 from app.core.graphql import gql
 from app.services.anilist_service import anilist_query
 from app.models.responses import (
     CharacterDetails,
+    VoiceActorDTO,
     Title,
     CoverImage,
     MediaMini,
@@ -11,11 +13,8 @@ from app.models.responses import (
 )
 
 logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/character")
-
-CHARACTER_BY_ID_QUERY = gql("character")
-
+router = APIRouter(prefix="/character", tags=["character"])
+CHARACTER_BY_ID_QUERY = gql("character")  # твой GraphQL запрос
 
 @router.get("/{character_id}", response_model=CharacterDetails)
 async def get_character(character_id: int):
@@ -25,13 +24,6 @@ async def get_character(character_id: int):
             variables={"id": character_id}
         )
 
-        if "errors" in response:
-            logger.warning(f"AniList error for character {character_id}: {response['errors']}")
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Ошибка внешнего API AniList"
-            )
-
         char_data = response.get("Character")
         if not char_data:
             raise HTTPException(
@@ -39,6 +31,29 @@ async def get_character(character_id: int):
                 detail="Персонаж не найден"
             )
 
+        # --- Собираем voice actors ---
+        voice_actors: List[VoiceActorDTO] = []
+        for edge in char_data.get("media", {}).get("edges", []):
+            for va in edge.get("voiceActors", []):
+                if va and va.get("id"):
+                    voice_actors.append(
+                        VoiceActorDTO(
+                            id=va["id"],
+                            name=va.get("name", {}).get("full", "—"),
+                            image=va.get("image", {}).get("large"),
+                            language=va.get("languageV2"),
+                        )
+                    )
+
+        # Убираем дубликаты
+        seen = set()
+        unique_voice_actors = []
+        for va in voice_actors:
+            if va.id not in seen:
+                seen.add(va.id)
+                unique_voice_actors.append(va)
+
+        # --- Возвращаем все данные ---
         return CharacterDetails(
             id=char_data["id"],
             name_full=char_data["name"].get("full", "—"),
@@ -47,31 +62,26 @@ async def get_character(character_id: int):
             image_large=char_data.get("image", {}).get("large"),
             description=char_data.get("description"),
             favourites=char_data.get("favourites"),
-
             age=char_data.get("age"),
             gender=char_data.get("gender"),
             bloodType=char_data.get("bloodType"),
-
-            dateOfBirth=DateOfBirth(**char_data["dateOfBirth"])
-            if char_data.get("dateOfBirth") else None,
-
+            dateOfBirth=DateOfBirth(**char_data["dateOfBirth"]) if char_data.get("dateOfBirth") else None,
             anime=[
                 MediaMini(
-                    id=media["id"],
-                    title=Title(**media["title"]),
-                    coverImage=CoverImage(**media["coverImage"])
-                    if media.get("coverImage") else None,
-
-                    format=media.get("format"),
-                    seasonYear=media.get("seasonYear"),
-                    averageScore=media.get("averageScore"),
+                    id=m["id"],
+                    title=Title(**m.get("title", {})),
+                    coverImage=CoverImage(**m.get("coverImage")) if m.get("coverImage") else None,
+                    format=m.get("format"),
+                    seasonYear=m.get("seasonYear"),
+                    averageScore=m.get("averageScore"),
                 )
-                for media in char_data.get("media", {}).get("nodes", [])
-            ]
+                for m in char_data.get("media", {}).get("nodes", [])
+            ],
+            voice_actors=unique_voice_actors  # ← сюда!
         )
 
-    except Exception:
-        logger.error("Ошибка при получении персонажа", exc_info=True)
+    except Exception as e:
+        logger.exception(f"Ошибка при получении персонажа {character_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Внутренняя ошибка сервера"

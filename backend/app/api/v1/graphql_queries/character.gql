@@ -1,42 +1,43 @@
-query GetCharacterById($id: Int!) {
-  Character(id: $id) {
-      id
-      name {
-        full
-        native
-        alternative
-      }
-      image {
-        large
-      }
-      description
-      favourites
+query GetCharacterById($id: Int!, $page: Int, $perPage: Int) {
+Character(id: $id) {
+    id
+    name {
+      full
+      native
+      alternative
+    }
+    image { large }
+    description
+    favourites
+    age
+    gender
+    bloodType
+    
+    dateOfBirth { year month day }
 
-      age
-      gender
-      bloodType
-
-      dateOfBirth {
-        year
-        month
-        day
+    media(page: $page, perPage: $perPage) {
+      nodes {
+        id
+        format
+        seasonYear
+        averageScore
+        title { romaji english }
+        coverImage { large medium }
       }
-
-      media(perPage: 12) {
-        nodes {
+      edges {
+        node {
           id
-          format
-          seasonYear
-          averageScore
-          title {
-            romaji
-            english
+        }
+        voiceActors {
+          age
+          bloodType
+          id
+          name {
+            full
           }
-          coverImage {
-            large
-            medium
-          }
-        } 
+        }
       }
+      pageInfo { total hasNextPage currentPage }
+    }
   }
 }

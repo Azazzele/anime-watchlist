@@ -1,190 +1,224 @@
 <script setup lang="ts">
-	import { ref, onMounted, computed } from 'vue'
-	import { useRoute } from 'vue-router'
-	import Card from '../Card.vue'
+  import { ref, computed, onMounted, watch } from 'vue'
+  import { useRoute } from 'vue-router'
+  import Card from '../ui/Card.vue'
+  import VoiceActorCard from '../ui/character/VoiceActorCard.vue'
+  
+  const route = useRoute()
+  
+  const props = defineProps<{ characterId: string | number }>()
+  const characterIdNum = computed(() => Number(props.characterId))
+  
+  const character = ref<any>(null)
+  const loading = ref<boolean>(true)
+  const error = ref<string | null>(null)
+  
+  const descriptionLang = ref<'ru' | 'en'>('en')
+  const descriptionRu = ref<string | null>(null)
+  
+  const currentDescription = computed(() => {
+    if (!character.value) return null
+    return descriptionLang.value === 'ru' && descriptionRu.value
+      ? descriptionRu.value
+      : character.value.description_en || character.value.description || null
+  })
+  
+  const toggleDescriptionLang = () => {
+    descriptionLang.value = descriptionLang.value === 'ru' ? 'en' : 'ru'
+  }
+  
+  const SHOW_LIMIT = 6
+  const showAllAnime = ref(false)
+  const visibleAnime = computed(() => {
+    if (!Array.isArray(character.value?.anime)) return []
+    const list = character.value.anime.filter((a: any) => a?.id)
+    return showAllAnime.value ? list : list.slice(0, SHOW_LIMIT)
+  })
+  const getMediaType = (type?: string) => {
+    if (type === 'MANGA') return 'manga'
+    if (type === 'NOVEL') return 'ranobe'
+    return 'anime'
+  }
 
-	const route = useRoute()
-	
-	const character = ref<any>(null)
-	const loading = ref(true)
-	const error = ref<string | null>(null)
-	const monthNames = [
-	'', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-	'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
-	]
-	const formatBirthDate = (dob: any) => {
-		if (!dob || !dob.month) return '—'
+  const formatBirthDate = (dob: any) => {
+    if (!dob || typeof dob !== 'object') return '—'
+    const parts = [
+      dob.day && String(dob.day),
+      dob.month && ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][dob.month-1],
+      dob.year && String(dob.year)
+    ].filter(Boolean)
+    return parts.join(' ') || '—'
+  }
 
-		const day = dob.day ? `${dob.day} ` : ''
-		const month = monthNames[dob.month]
-		const year = dob.year ? ` ${dob.year}` : ''
+  const favourite = ref(false)
+  const toggleFavourite = () => {
+    favourite.value = !favourite.value
 
-		return `${day}${month}${year}`
-	}	
-	const descriptionLang = ref<'ru' | 'en'>('ru')
+    if (character.value) {
+      if (favourite.value) {
+        character.value.favourites = (character.value.favourites || 0) + 1
+      } else {
+        character.value.favourites = Math.max((character.value.favourites || 1) - 1, 0)
+      }
+    }
+  }
 
-	const descriptionRu = computed(() => {
-		if (!character.value?.description) return null
+  const loadCharacter = async () => {
+    loading.value = true
+    error.value = null
+  
+    const id = characterIdNum.value
+    if (isNaN(id) || id <= 0) {
+      error.value = 'Некорректный ID персонажа'
+      loading.value = false
+      return
+    }
+  
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/character/${id}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+  
+      // --- фильтруем японскую актрису и берем только первую ---
+      const japaneseVA = (data.voice_actors || []).filter((va:any) => va.language === 'Japanese')[0] || null
+  
+      character.value = {
+        ...data,
+        voice_actors: japaneseVA ? [japaneseVA] : []
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки персонажа:', err)
+      error.value = 'Персонаж не найден или ошибка сервера'
+      character.value = null
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  onMounted(loadCharacter)
+  watch(() => characterIdNum.value, loadCharacter, { immediate: true })
+  </script>
+  
+  <template>
+    <div class="character-page">
+      <div v-if="character.favourites" class="stats" >
+                <span class="heart material-symbols-outlined">favorite</span>
+                {{ character.favourites.toLocaleString() }} избранных
+          </div>
+      <div v-if="loading" class="loading">Загрузка персонажа…</div>
+      <div v-else-if="error" class="error">{{ error }}</div>
+      <div v-else-if="character" class="content">
+  
+        <!-- HERO -->
+        <section class="hero">
+          <div class="avatar-wrap">
+            <img v-if="character.image_large" :src="character.image_large" class="avatar" alt="Персонаж"/>
+            <div v-else class="avatar-placeholder">Нет фото</div>
 
-		// если у тебя уже приходит RU — просто верни
-		// если нет, тут позже можно подключить перевод
-		return character.value.description
-	})
+            <!-- Кнопка "В избранное" под постером -->
+            <div class="poster-actions">
+              <button
+                class="fav-btn"
+                :class="{ active: favourite }"
+                @click="toggleFavourite"
+              >
+                <span class="material-symbols-outlined heart">favorite</span>
+                {{ favourite ? 'В избранном' : 'В избранное' }}
+              </button>
+              
+             
+            </div>
+          </div>
 
-	const descriptionEn = computed(() => {
-		return character.value?.description ?? null
-	})
+          <div class="hero-info-wrap">
+            <div class="hero-info">
+              <h2 class="hero-title">{{ character.name_full }}</h2>
+              <p v-if="character.name_native" class="hero-native">{{ character.name_native }}</p>
 
-	const currentDescription = computed(() => {
-		return descriptionLang.value === 'ru'
-			? descriptionRu.value
-			: descriptionEn.value
-	})
+              <ul>
+                <li v-if="character.age"><span>Возраст:</span> {{ character.age }}</li>
+                <li v-if="character.gender"><span>Пол:</span> {{ character.gender }}</li>
+                <li v-if="character.bloodType"><span>Группа крови:</span> {{ character.bloodType }}</li>
+                <li v-if="character.dateOfBirth"><span>Дата рождения:</span> {{ formatBirthDate(character.dateOfBirth) }}</li>
+              </ul>
 
-	const toggleDescriptionLang = () => {
-		descriptionLang.value = descriptionLang.value === 'ru' ? 'en' : 'ru'
-	}
-
-	const loadCharacter = async () => {
-	  loading.value = true
-	  error.value = null
-	
-	  const id = Number(route.params.characterId)
-	
-	  if (!id || isNaN(id)) {
-		error.value = 'Некорректный ID персонажа'
-		loading.value = false
-		return
-	  }
-	
-	  try {
-		const res = await fetch(`http://127.0.0.1:8000/character/${id}`)
-	
-		if (!res.ok) {
-		  error.value = 'Персонаж не найден'
-		  return
-		}
-	
-		character.value = await res.json()
-	  } catch (e) {
-		error.value = 'Ошибка сети'
-	  } finally {
-		loading.value = false
-	  }
-	}
-	
-	onMounted(loadCharacter)
-	</script>
-	
-	
-	
-	<template>
-	<div class="character-page">
-	<div v-if="loading" class="loading">Загрузка персонажа…</div>
-
-	<div v-else-if="error" class="error">
-		{{ error }}
-	</div>
-
-	<div v-else class="content">
-		<!-- HERO -->
-		<section class="hero">
-			<div class="avatar-wrap">
-				<img
-				v-if="character.image_large"
-				:src="character.image_large"
-				class="avatar"
-				alt="Character"
-				/>
-				<div class="poster-actions">
-					<button class="fav-btn">
-						<span class="material-symbols-outlined">favorite</span>
-						В избранное
-					</button>
-				</div>
-
-			</div>
-
-			<div class="hero-info">
-				<h2 class="hero-title">{{ character.name_full }}</h2>
-
-				<p v-if="character.name_native" class="hero-native">
-				{{ character.name_native }}
-				</p>
-				<ul>
-					<li v-if="character.age">
-						<span>Возраст: </span> {{ character.age }}
-					</li>
-
-					<li v-if="character.gender">
-						<span>Пол: </span> {{ character.gender }}
-					</li>
-
-					<li v-if="character.bloodType">
-						<span>Группа крови: </span> {{ character.bloodType }}
-					</li>
-
-					<li v-if="character.dateOfBirth">
-					<span>Дата рождения:</span>
-						{{ formatBirthDate(character.dateOfBirth) }}
-					</li>
+            </div>
+           
+            <!-- Сэйю (только японская) -->
+            <section v-if="character.voice_actors?.length" class="voice-actors">
+              <h2>Сэйю (Japanese)</h2>
+              <div class="va-grid">
+                <VoiceActorCard
+                  v-for="actor in character.voice_actors"
+                  :key="actor.id"
+                  :actor="{
+                    ...actor,
+                    coverImage: actor.image
+                  }"
+                />
+              </div>
+            </section>
+          </div>
+        </section>
+  
+        <!-- Описание -->
+        <section v-if="currentDescription" class="description-block">
+          <div class="description-header">
+            <h2>Описание</h2>
+            <button class="lang-toggle" :disabled="!descriptionRu" @click="toggleDescriptionLang">
+              <span class="material-symbols-outlined">{{ descriptionLang === 'ru' ? 'translate' : 'language' }}</span>
+              <span class="lang-label">{{ descriptionLang.toUpperCase() }}</span>
+            </button>
+          </div>
+          <div class="description-content" v-html="currentDescription" />
+        </section>
+  
+        <!-- Аниме -->
+        <section v-if="character.anime?.length" class="anime">
+          <h2>Появляется в</h2>
+          <div class="anime_wrapper">
+            <Card
+              v-for="anime in visibleAnime"
+              :key="anime.id"
+              :media="{
+                id: anime.id,
+                title: anime.title,
+                cover_image_url: anime.coverImage?.large || anime.coverImage?.medium,
+                format: anime.format ?? null,
+                seasonYear: anime.seasonYear ?? null,
+                averageScore: anime.averageScore ?? null
+              }"
+              :mediaType="getMediaType(anime.type)"
+            />
 
 
-
-
-				</ul>
-				
-				<div v-if="character.favourites" class="stats">
-					<span class="heart material-symbols-outlined">favorite</span>
-					{{ character.favourites.toLocaleString() }} избранных
-				</div>
-
-			</div>
-			</section>
-
-		
-
-
-		
-		<!-- DESCRIPTION --> 
-		<section
-			v-if="currentDescription"
-			class="description-block"
-		>
-			<div class="description-header">
-				<h2>Описание</h2>
-
-				<button
-					class="lang-toggle"
-					:disabled="!descriptionRu"
-					@click="toggleDescriptionLang"
-					:title="descriptionLang === 'ru'
-						? 'Показать на английском'
-						: 'Показать на русском'"
-				>
-					<span class="material-symbols-outlined">
-						{{ descriptionLang === 'ru' ? 'translate' : 'language' }}
-					</span>
-					<span class="lang-label">
-						{{ descriptionLang.toUpperCase() }}
-					</span>
-				</button>
-			</div>
-
-			<div
-				class="description-content"
-				v-html="currentDescription"
-			/>
-		</section>
-
-		<!-- APPEARANCES --> <section v-if="character.anime?.length" class="anime"> <h2>Появляется в</h2> <div class="anime_wrapper"> <Card v-for="anime in character.anime" :key="anime.id" :anime="{ id: anime.id, title: anime.title, cover_image_url: anime.coverImage?.large || anime.coverImage?.medium, format: anime.format ?? null, seasonYear: anime.seasonYear ?? null, averageScore: anime.averageScore ?? null }" /> </div> </section>
-	</div>
-	</div>
-
-	</template>
-	<style scoped>
+          </div>
+          <button v-if="character.anime.length > SHOW_LIMIT" class="show-more" @click="showAllAnime = !showAllAnime">
+            {{ showAllAnime ? 'Скрыть' : 'Показать все' }} ({{ character.anime.length }})
+          </button>
+        </section>
+      </div>
+    </div>
+  </template>
+  
+  
+  <style scoped>  
+  .avatar-placeholder {
+    width: 260px;
+    height: 360px;
+    border-radius: 16px;
+    background: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 1.1rem;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+  
+  /* ... все остальные стили ... */
 .character-page {
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 32px 16px;
   color: #e5e7eb;
@@ -194,6 +228,11 @@
 .error {
   text-align: center;
   opacity: 0.7;
+}
+.hero-info-wrap {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
 }
 
 
@@ -247,14 +286,17 @@
   border-radius: 999px;
   border: none;
   cursor: pointer;
-
-  background: rgba(248, 113, 113, 0.15);
+  background: transparent;
+  
   color: #f87171;
 
   font-weight: 600;
   transition: all 0.2s ease;
 }
-
+.fav-btn.active {
+  background: rgba(248, 113, 113, 0.15);
+  color: #fff;
+}
 .fav-btn:hover {
   background: rgba(248, 113, 113, 0.25);
   transform: translateY(-1px);
@@ -306,6 +348,15 @@
 .info-block {
   margin-bottom: 40px;
   
+}
+.voice-actors {
+  margin-bottom: 48px;
+}
+
+.va-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .info-block h2 {
@@ -364,9 +415,12 @@
 .stats {
   display: flex;
   align-items: center;
+  justify-content: end;
   gap: 6px;
+  margin-left: 12px;
   font-weight: 600;
   color: #f87171;
+  font-size: 0.9rem;
 }
 
 .heart {
@@ -390,6 +444,7 @@ color: #f87171;
   position: absolute;
   inset: 0;
   border-radius: 18px;
+  pointer-events: none;
 }
 
 .avatar {
@@ -534,6 +589,21 @@ color: #f87171;
   font-weight: 500;
   letter-spacing: .5px;
 }
+.show-more {
+  margin-top: 20px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06);
+  color: #cfd2ff;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.show-more:hover {
+  background: rgba(255,255,255,.12);
+}
+
 /* ===== MOBILE ===== */
 @media (max-width: 768px) {
   .hero {

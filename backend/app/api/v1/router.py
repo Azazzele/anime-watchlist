@@ -1,11 +1,18 @@
 from fastapi import APIRouter
-from .endpoints import media, season, characters, character
+
+from .endpoints.media import router as media_router
+from .endpoints.season import router as season_router
+from .endpoints.characters import router as characters_router
+from .endpoints.character import router as character_router
+from .endpoints.staff import router as staff_router
+from .endpoints.user import router as user
 
 api_router = APIRouter()
 
-
-api_router.include_router(media.router)
-api_router.include_router(season.router)
-api_router.include_router(character.router) 
-api_router.include_router(characters.router) 
-
+# Подключаем все роутеры
+api_router.include_router(media_router)
+api_router.include_router(season_router)
+api_router.include_router(characters_router)
+api_router.include_router(character_router)
+api_router.include_router(staff_router)
+api_router.include_router(user, tags=["User"])

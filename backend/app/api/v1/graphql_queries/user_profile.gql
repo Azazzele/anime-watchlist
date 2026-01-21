@@ -1,0 +1,83 @@
+query GetUserProfile($id: Int, $name: String) {
+  User(id: $id, name: $name) {
+    id
+    name
+    avatar {
+      large
+      medium
+    }
+    bannerImage
+    about(asHtml: false)
+    statistics {
+      anime {
+        count
+        meanScore
+        minutesWatched
+        episodesWatched
+      }
+      manga {
+        count
+        meanScore
+        chaptersRead
+        volumesRead
+      }
+    }
+    favourites {
+      anime {
+        nodes {
+          id
+          title {
+            userPreferred
+            romaji
+            english
+          }
+          coverImage {
+            large
+          }
+        }
+      }
+      manga {
+        nodes {
+          id
+          title {
+            userPreferred
+            romaji
+            english
+          }
+          coverImage {
+            large
+          }
+        }
+      }
+      characters {
+        nodes {
+          id
+          name {
+            full
+            native
+          }
+          image {
+            large
+          }
+        }
+      }
+      staff {
+        nodes {
+          id
+          name {
+            full
+            native
+          }
+          image {
+            large
+          }
+        }
+      }
+    }
+    createdAt
+    updatedAt
+    siteUrl
+    donatorTier
+    moderatorRoles
+  }
+}

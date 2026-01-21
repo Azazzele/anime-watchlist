@@ -1,61 +1,61 @@
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Path
 import logging
 
-from fastapi import APIRouter, HTTPException, Path
-
 from app.core.graphql import gql
-from app.models.responses import FullAnimeDetails
 from app.services.anilist_service import anilist_query
+from app.models.responses import FullAnimeDetails
 
-
-# GraphQL queries
-ANIME_DETAILS_QUERY = gql("anime_details")
-
-
-# Router
 router = APIRouter(
-    tags=["anime"],
+    prefix="",
+    tags=["media"],
 )
 
 logger = logging.getLogger(__name__)
 
+MEDIA_DETAILS_QUERY = gql("media_details")
+
+MEDIA_TYPE_MAP = {
+    "anime": "ANIME",
+    "manga": "MANGA",
+    "ranobe": "NOVEL",
+}
+
 
 @router.get(
-    "/anime/{media_id}",
+    "/media/{media_type}/{media_id}",
     response_model=FullAnimeDetails,
 )
 async def get_media_details(
+    media_type: str,
     media_id: int = Path(..., ge=1),
-) -> FullAnimeDetails:
-    try:
-        data = await anilist_query(
-            ANIME_DETAILS_QUERY,
-            {"id": media_id},
+):
+    media_type = media_type.lower()
+
+    if media_type not in MEDIA_TYPE_MAP:
+        raise HTTPException(
+            status_code=400,
+            detail="Неверный тип медиа (anime | manga | ranobe)",
         )
 
+    gql_type = MEDIA_TYPE_MAP[media_type]
+
+    try:
+        result = await anilist_query(
+            MEDIA_DETAILS_QUERY,
+            {
+                "id": media_id,
+                "type": gql_type,
+            },
+        )
+
+        data = result.get("data", {})
         media = data.get("Media")
 
         if not media:
-            logger.warning(
-                "Anime not found: media_id=%s",
-                media_id,
-            )
             raise HTTPException(
                 status_code=404,
-                detail="Аниме не найдено",
+                detail=f"{media_type.upper()} не найден",
             )
-        
-                # --- Обработка поля `type` ---
-        if "type" not in media or media["type"] not in ["ANIME", "MANGA"]:
-            # Если тип отсутствует или невалиден — принудительно ставим "ANIME"
-            # (или логируем предупреждение и выбираем дефолт)
-            media["type"] = "ANIME"
-            logger.info(
-                "Forced type=ANIME for media_id=%s (original type=%s)",
-                media_id,
-                media.get("type"),
-            )
-        
 
         return FullAnimeDetails.model_validate(media)
 
@@ -64,10 +64,11 @@ async def get_media_details(
 
     except Exception:
         logger.exception(
-            "Error fetching anime details: media_id=%s",
+            "Error fetching media: type=%s id=%s",
+            media_type,
             media_id,
         )
         raise HTTPException(
             status_code=503,
-            detail="Не удалось загрузить данные аниме с AniList",
+            detail="Ошибка загрузки данных AniList",
         )
