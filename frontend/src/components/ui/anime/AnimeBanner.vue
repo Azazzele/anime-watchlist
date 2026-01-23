@@ -11,7 +11,7 @@
 	<style scoped>
 	.banner {
 	  height: 320px;
-	  background-size: cover;
+	  background-size:contain;
 	  background-position: center;
 	}
 	</style>

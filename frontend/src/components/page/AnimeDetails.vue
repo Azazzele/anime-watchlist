@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, watch, onMounted, onUnmounted } from 'vue'
+  import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
   
   import AnimeBanner from '../ui/anime/AnimeBanner.vue'
   import AnimePosterWithStatus from '../ui/anime/AnimePosterWithStatus.vue'
@@ -10,11 +10,11 @@
   import AnimeScreenshotsGrid from '../ui/anime/AnimeScreenshotsGrid.vue'
   import AnimeTrailer from '../ui/anime/AnimeTrailer.vue'
   import AnimeDiscussion from '../ui/anime/AnimeDiscussion.vue'
-  
+
   import PosterModal from '../ui/anime/modals/PosterModal.vue'
   import ScreenshotModal from '../ui/anime/modals/ScreenshotModal.vue'
   
-  import type { Media } from '../../types/type'
+  import type { Media, AnimeMedia } from '../../types/type'
   
   /* ===================== PROPS ===================== */
   const props = defineProps<{
@@ -27,40 +27,33 @@
   const loading = ref(true)
   const error = ref<string | null>(null)
   
-  /* ===================== TYPE MAP ===================== */
-  const mediaTypeMap = {
-    anime: 'ANIME',
-    manga: 'MANGA',
-    ranobe: 'NOVEL'
-  } as const
-  
+  /* ===== ONLY ANIME MEDIA ===== */
+  const anime = computed<AnimeMedia | null>(() => {
+    return media.value?.type === 'ANIME'
+      ? (media.value as AnimeMedia)
+      : null
+  })
+
   /* ===================== LOAD MEDIA ===================== */
   const loadMedia = async () => {
     loading.value = true
     error.value = null
-
+  
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/anime/${props.id}`
+        `http://127.0.0.1:8000/media/${props.type}/${props.id}`
       )
-      if (!res.ok) throw new Error('Ошибка загрузки')
-
-      const data = await res.json()
-      media.value = data 
-    } catch (e) {
+      if (!res.ok) throw new Error()
+  
+      media.value = await res.json()
+    } catch {
       error.value = 'Не удалось загрузить данные'
     } finally {
       loading.value = false
     }
   }
-
-
   
-  watch(
-    () => [props.id, props.type],
-    loadMedia,
-    { immediate: true }
-  )
+  watch(() => [props.id, props.type], loadMedia, { immediate: true })
   
   /* ===================== MODALS ===================== */
   const posterOpen = ref(false)
@@ -84,7 +77,7 @@
     document.body.style.overflow = ''
   }
   
-  /* ===================== ESC HANDLER ===================== */
+  /* ===================== ESC ===================== */
   const onKeydown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       if (posterOpen.value) closePoster()
@@ -92,13 +85,8 @@
     }
   }
   
-  onMounted(() => {
-    window.addEventListener('keydown', onKeydown)
-  })
-  
-  onUnmounted(() => {
-    window.removeEventListener('keydown', onKeydown)
-  })
+  onMounted(() => window.addEventListener('keydown', onKeydown))
+  onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   </script>
   
   <template>
@@ -107,58 +95,69 @@
       <div v-else-if="error" class="error">{{ error }}</div>
   
       <template v-else-if="media">
-        <!-- Banner -->
+
+        <!-- BANNER -->
         <AnimeBanner
-          :background="media.bannerImage || media.coverImage?.large"
+          :background="anime?.bannerImage || anime?.coverImage?.large"
         />
-  
-        <!-- Main info -->
+    
+        <AnimeSideStats
+          v-if="anime"
+          :anime="anime"
+        />
+
+        <!-- MAIN INFO -->
         <div class="main-info-v2">
           <AnimePosterWithStatus
-            :cover="media.coverImage?.extraLarge"
+            v-if="anime"
+            :cover="anime.coverImage?.extraLarge"
             @open-poster="openPoster"
           />
   
           <AnimeMainInfo :anime="media" />
         </div>
   
-        <!-- Description -->
+        <!-- DESCRIPTION -->
         <AnimeDescription :anime="media" />
   
-        <!-- Relations & Staff -->
+        <!-- RELATIONS & STAFF -->
         <AnimeRelationsAndStaff :anime="media" />
   
-        <!-- Characters (только если есть) -->
+        <!-- CHARACTERS -->
         <AnimeCharactersPreview
-          v-if="media.characters?.edges?.length"
-          :characters="media.characters.edges"
-          :anime-id="media.id"
+          v-if="anime && anime.characters?.edges.length"
+          :characters="anime.characters.edges"
+          :anime-id="anime.id"
         />
-  
-        <!-- Screenshots (ТОЛЬКО ДЛЯ ANIME) -->
+
+        <!-- SCREENSHOTS -->
         <AnimeScreenshotsGrid
-          v-if="media.type === 'ANIME'"
+          v-if="anime"
           :thumbnails="
-            media.streamingEpisodes
+            anime.streamingEpisodes
               ?.map(e => e.thumbnail)
               .filter((t): t is string => !!t) ?? []
           "
-          :anime-id="props.id"
+          :anime-id="anime.id"
           @open="openScreenshot"
         />
   
-        <!-- Trailer (ТОЛЬКО ДЛЯ ANIME) -->
+        <!-- TRAILER -->
         <AnimeTrailer
-          v-if="media.type === 'ANIME'"
-          :trailer="media.trailer"
+          v-if="anime"
+          :trailer="anime.trailer"
         />
   
-        <AnimeDiscussion />
+        <!-- DISCUSSION -->
+        <AnimeDiscussion
+          :media-id="media.id"
+          :type="media.type"
+        />
   
-        <!-- Modals -->
+        <!-- MODALS -->
         <PosterModal
-          v-if="posterOpen"
-          :src="media.coverImage?.extraLarge"
+          v-if="posterOpen && anime"
+          :src="anime.coverImage?.extraLarge"
           @close="closePoster"
         />
   

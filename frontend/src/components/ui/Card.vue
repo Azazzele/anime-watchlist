@@ -34,7 +34,7 @@
 	})
 	
 	const routeTo = computed(() => {
-	  return `/${props.mediaType}/${props.media.id}`
+	  return `media/${props.mediaType}/${props.media.id}`
 	})
 	
 	const onImageError = (e: Event) => {

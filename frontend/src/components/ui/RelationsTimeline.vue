@@ -132,7 +132,7 @@
 	  width: 100%;
 	  border-collapse: collapse;
 	  min-width: 720px;
-	  background: rgba(30, 35, 55, 0.4);
+	  
 	}
 	
 	.relations-table th,
@@ -229,7 +229,6 @@
 	  background: rgba(165, 180, 252, 0.1);
 	  border-color: rgba(165, 180, 252, 0.5);
 	}
-	
 	/* Адаптив */
 	@media (max-width: 768px) {
 	  .relations-table th,

@@ -77,7 +77,7 @@
 	
 	<template>
 	  <section class="staff-section">
-		<h2 class="section-title">Ключевой персонал</h2>
+		<h2 class="section-title">Авторы</h2>
 	
 		<div v-if="filteredStaff.length === 0" class="empty-message">
 		  Нет данных о режиссёрах и авторах оригинала
@@ -174,28 +174,28 @@
 .show-more-btn:hover {
   color: #a5b4fc;
 }
-	.staff-section {
-	  margin: 40px 0;
-	}
+.staff-section {
+	margin: 40px 0;
+}
 	
-	.section-title {
-	  font-size: 1.3rem;
-	  font-weight: 600;
-	  color: #e2e8f0;
-	  margin-bottom: 16px;
-	}
+.section-title {
+	font-size: 1.3rem;
+	font-weight: 600;
+	color: #e2e8f0;
+	margin-bottom: 16px;
+}
 	
-	.table-container {
-	  overflow-x: auto;
-	  border-radius: 12px;
-	  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-	}
+.table-container {
+	overflow-x: auto;
+	border-radius: 12px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
 	
 	.staff-table {
 	  width: 100%;
 	  border-collapse: collapse;
 	  min-width: 600px;
-	  background: rgba(30, 35, 55, 0.4);
+	
 	}
 	
 	.staff-table th,
@@ -223,7 +223,6 @@
 	  width: 64px;
 	  height: 64px;
 	  object-fit: cover;
-	  border-radius: 50%;
 	  border: 2px solid rgba(165, 180, 252, 0.2);
 	}
 	

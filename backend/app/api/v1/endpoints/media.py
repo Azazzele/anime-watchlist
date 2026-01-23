@@ -17,7 +17,7 @@ MEDIA_DETAILS_QUERY = gql("media_details")
 MEDIA_TYPE_MAP = {
     "anime": "ANIME",
     "manga": "MANGA",
-    "ranobe": "NOVEL",
+    "ranobe": "MANGA",
 }
 
 
@@ -37,24 +37,26 @@ async def get_media_details(
             detail="Неверный тип медиа (anime | manga | ranobe)",
         )
 
-    gql_type = MEDIA_TYPE_MAP[media_type]
+    expected_type = MEDIA_TYPE_MAP[media_type]
 
     try:
         result = await anilist_query(
             MEDIA_DETAILS_QUERY,
-            {
-                "id": media_id,
-                "type": gql_type,
-            },
+            {"id": media_id},
         )
 
-        data = result.get("data", {})
-        media = data.get("Media")
-
+        media = result.get("data", {}).get("Media")
+        
         if not media:
             raise HTTPException(
                 status_code=404,
-                detail=f"{media_type.upper()} не найден",
+                detail="Медиа не найдено",
+            )
+
+        if media.get("type") != expected_type:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Это не {media_type.upper()}",
             )
 
         return FullAnimeDetails.model_validate(media)
@@ -63,11 +65,7 @@ async def get_media_details(
         raise
 
     except Exception:
-        logger.exception(
-            "Error fetching media: type=%s id=%s",
-            media_type,
-            media_id,
-        )
+        logger.exception("AniList error")
         raise HTTPException(
             status_code=503,
             detail="Ошибка загрузки данных AniList",

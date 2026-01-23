@@ -8,8 +8,8 @@
 	
 	defineEmits(['open'])
 	
-	const previewScreenshots = computed(() => props.thumbnails.slice(0, 4))
-	const hasMoreScreenshots = computed(() => props.thumbnails.length > 4)
+	const previewScreenshots = computed(() => props.thumbnails.slice(0, 6))
+	const hasMoreScreenshots = computed(() => props.thumbnails.length > 6)
 	</script>
 	
 	<template>
@@ -38,7 +38,6 @@
 	
 	<style scoped>
 	.media-section {
-	  max-width: 1480px;
 	  margin: 80px auto;
 	  padding: 0 32px;
 	}
@@ -46,7 +45,6 @@
 	.screenshots-grid {
 	  display: grid;
 	  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-	  gap: 18px;
 	}
 	
 	.screenshot {

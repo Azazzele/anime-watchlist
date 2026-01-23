@@ -19,7 +19,7 @@ a,p,h2,h3,h4,li,button,strong, span{
 	color: var(--text-main);
 }
 
-p,a,li,span, th, strong, span{
+p,a,li,span, th,td, strong, span, b{
 	font-size: 16px;
 	font-family: var(--font-main);
 }

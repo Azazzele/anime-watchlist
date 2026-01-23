@@ -1,16 +1,15 @@
-query GetAnimeDetails($id: Int!, $type: MediaType) {
-  Media(id: $id, type: $type) {
+query MediaDetails($id: Int!) {
+  Media(id: $id) {
     id
     type
+    source
     title {
       romaji
       english
       native
-      userPreferred  
+      userPreferred
     }
-    startDate { year month day }   
-    endDate { year month day }
-    description(asHtml: false)     
+    description(asHtml: true)
     format
     status(version: 2)
     season
@@ -28,9 +27,7 @@ query GetAnimeDetails($id: Int!, $type: MediaType) {
       medium
     }
     studios(isMain: true) {
-      nodes {
-        name
-      }
+      nodes { name }
     }
     trailer {
       id
@@ -43,7 +40,7 @@ query GetAnimeDetails($id: Int!, $type: MediaType) {
       site
       url
     }
-    staff(sort: FAVOURITES_DESC, perPage: 15) {   
+    staff(sort: FAVOURITES_DESC, perPage: 15) {
       edges {
         role
         node {
@@ -61,26 +58,18 @@ query GetAnimeDetails($id: Int!, $type: MediaType) {
           type
           format
           startDate { year }
-          title {
-            romaji
-            english
-          }
+          title { romaji english }
           coverImage { large }
         }
       }
     }
-    characters(perPage: 6, sort: [FAVOURITES_DESC, RELEVANCE]) {
+    characters(perPage: 50, sort: [FAVOURITES_DESC, RELEVANCE]) {
       edges {
         role
         node {
           id
-          name {
-            full
-            native
-          }
-          image {
-            large
-          }
+          name { full native }
+          image { large }
         }
         voiceActors(language: JAPANESE, sort: FAVOURITES_DESC) {
           id
@@ -88,10 +77,6 @@ query GetAnimeDetails($id: Int!, $type: MediaType) {
           image { large }
           languageV2
         }
-      }
-      pageInfo {
-        total
-        hasNextPage
       }
     }
   }

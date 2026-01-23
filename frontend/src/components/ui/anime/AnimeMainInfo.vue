@@ -1,311 +1,239 @@
 <script setup lang="ts">
 	import { computed } from 'vue'
-	import { Media } from '../../../types/type';
-
+	import type { Media } from '../../../types/type'
+	import {
+	  SEASONS,
+	  FORMATS,
+	  STATUS,
+	  GENRES,
+	  SOURCES,
+	  t
+	} from '../../../i18n/anilist.ru'
 	
-	const props = defineProps<{
-	  anime: Media | null | undefined
-	}>()
+	const props = defineProps<{ anime?: Media | null }>()
 	
-	const ratings = computed(() => {
-	  const score = props.anime?.averageScore
-	
-	  return {
-		anilist: score != null ? (score / 10).toFixed(1) : null,
-		kinopoisk: null,
-		shikimori: null,
-	  }
-	})
-	const quantityLabel = computed(() => {
-	const media = props.anime
-	if (!media) return '—'
+	// Рейтинги по разным источникам
+	const ratings = computed(() => ({
+	  'Anilist': props.anime?.averageScore != null ? (props.anime.averageScore / 10).toFixed(1) : '—',
+	  'MAL': props.anime?.malScore ?? '—',
+	  'Shikimori': props.anime?.shikiScore ?? '—',
+	}))
 
-	switch (media.type) {
-		case 'ANIME':
-		return media.episodes != null
-			? `${media.episodes} эп.`
-			: '—'
-
-		case 'MANGA':
-		case 'NOVEL': {
-		const parts: string[] = []
-
-		if (media.volumes != null) {
-			parts.push(`${media.volumes} том${media.volumes > 1 ? 'а' : ''}`)
-		}
-
-		if (media.chapters != null) {
-			parts.push(`${media.chapters} глав`)
-		}
-
-		return parts.length ? parts.join(', ') : '—'
-		}
-
-		default:
-		return '—'
+	// Функция для цвета рейтинга
+	const ratingColor = (value: string) => {
+	const num = parseFloat(value)
+	if (isNaN(num)) return '#888' // серый для "—"
+		// цвет от красного (#f87171) к зелёному (#4ade80)
+		const r = Math.max(0, 248 - (num * 10))  // уменьшаем красный
+		const g = Math.min(173 + (num * 15), 222) // увеличиваем зеленый
+		const b = 113                          // синий оставим средним
+		return `rgb(${Math.round(r)}, ${Math.round(g)}, ${b})`
 	}
+
+	const format = computed(() => t(FORMATS, props.anime?.format))
+	const status = computed(() => t(STATUS, props.anime?.status))
+	const season = computed(() => t(SEASONS, props.anime?.season))
+	const genres = computed(() =>
+	  props.anime?.genres?.map(g => t(GENRES, g)) ?? []
+	)
+	
+	const source = computed(() => {
+	  const s = props.anime?.source
+	  if (!s || s === 'OTHER') return null
+	  return t(SOURCES, s)
 	})
-
-
+	
+	const score = computed(() =>
+	  props.anime?.averageScore != null
+		? (props.anime.averageScore / 10).toFixed(1)
+		: '—'
+	)
+	
+	const episodes = computed(() =>
+	  props.anime?.episodes != null ? props.anime.episodes : '—'
+	)
 	</script>
 	
 	<template>
-	  <div v-if="anime" class="content-wrap">
-		<div class="title-row">
-		  <h2>{{ anime.title?.romaji || 'Без названия' }}</h2>
+	<section v-if="anime" class="anime-info">
+	
+	  <!-- HEADER -->
+	  <header class="header">
+		<h2 class="title">{{ anime.title?.romaji }}</h2>
+	
+		<nav class="breadcrumbs">
+		  <span class="crumb">{{ format }}</span>
+		  <span class="sep">/</span>
+		  <span class="crumb status">{{ status }}</span>
+		  <span class="sep">/</span>
+		  <span class="crumb season">{{ season }} {{ anime.seasonYear }}</span>
+		</nav>
+		
+		<div v-if="genres.length" class="genres">
+		  <span v-for="g in genres" :key="g">{{ g }}</span>
+		</div>
+	  </header>
+	
+	  <div class="content">
+	
+		<!-- LEFT -->
+		<div class="main">
+		  <section class="block">
+			<h3>Альтернативные названия</h3>
+			<div class="title-row">
+			  <span class="label">Romaji</span>
+			  <span class="value">{{ anime.title?.romaji || '—' }}</span>
+			</div>
+			<div v-if="anime.title?.english" class="title-row">
+			  <span class="label">English</span>
+			  <span class="value">{{ anime.title.english }}</span>
+			</div>
+		  </section>
+	
+		  <section class="block">
+			<h3>Студия</h3>
+			<p>{{ anime.studios?.nodes?.map(s => s.name).join(', ') || '—' }}</p>
+		  </section>
+	
+		  <section v-if="source" class="block">
+			<h3>Первоисточник</h3>
+			<p>{{ source }}</p>
+		  </section>
 		</div>
 	
-		<p v-if="anime.title?.english" class="alt-title">
-		  {{ anime.title.english }}
-		</p>
-		<p v-if="anime.title?.native" class="alt-title">
-		  {{ anime.title.native }}
-		</p>
-	
-		<div class="meta-strip">
-			<span>{{ anime.format || '?' }}</span>
-			<span>{{ anime.status || '?' }}</span>
-			<span>{{ quantityLabel }}</span>
-		</div>
-	
-		<div class="rating-sources">
-		  <div v-if="ratings.anilist" class="rating-badge anilist">
-			<span class="source">AniList</span>
-			<span class="value">{{ ratings.anilist }}</span>
+		<!-- RIGHT / SIDEBAR -->
+		<aside class="sidebar">
+		  <!-- Рейтинги по источникам -->
+		  	<div class="stat rating-sources">
+				<div class="source" v-for="(value, key) in ratings" :key="key">
+					<span class="source-name">{{ key }}</span>
+					<b class="source-score" :style="{ color: ratingColor(value) }">{{ value ?? '—' }}</b>
+				</div>
+			</div>
+		  <div class="stat">
+			<span>Эпизоды</span>
+			<b>{{ episodes }}</b>
 		  </div>
 	
-		  <div class="rating-badge kinopoisk disabled">
-			<span class="source">КиноПоиск</span>
-			<span class="value">—</span>
+		  <div class="stat">
+			<span>Статус</span>
+			<b>{{ status }}</b>
 		  </div>
 	
-		  <div class="rating-badge shikimori disabled">
-			<span class="source">Shikimori</span>
-			<span class="value">—</span>
+		  <div class="stat">
+			<span>Комментариев</span>
+			<b>0</b>
 		  </div>
-		</div>
 	
-		<div class="meta-secondary">
-		  <span>{{ anime.season || '?' }} / {{ anime.seasonYear ?? '?' }}</span>
-		</div>
-	
-		<div class="actions-row">
-		  <button title="В избранное">
-			<span class="material-symbols-outlined">bookmark</span>
-		  </button>
-		  <button title="Комментарий">
-			<span class="material-symbols-outlined">comment</span>
-		  </button>
-		  <button title="Отзыв">
-			<span class="material-symbols-outlined">rate_review</span>
-		  </button>
-		  <button title="В плейлист">
-			<span class="material-symbols-outlined">playlist_add</span>
-		  </button>
-		  <button title="Поделиться">
-			<span class="material-symbols-outlined">share</span>
-		  </button>
-		  <button title="Смотреть">
-			<span class="material-symbols-outlined">play_circle</span>
-		  </button>
-		</div>
-	
-		<div v-if="anime.genres?.length" class="genres">
-		  <strong>Жанры:</strong>
-		  <div class="genre-list">
-			<span
-			  v-for="genre in anime.genres"
-			  :key="genre"
-			  class="genre"
-			>
-			  {{ genre }}
-			</span>
+		  <div class="stat">
+			<span>Рецензий</span>
+			<b>0</b>
 		  </div>
-		</div>
+		</aside>
 	
-		<div class="footer-info">
-		  <div v-if="anime.studios?.nodes?.length" class="studios">
-			<h2>Студия:</h2>
-			<h3>{{ anime.studios.nodes.map(s => s.name).join(', ') }}</h3>
-		  </div>
-		</div>
 	  </div>
-	
-	  <!-- опционально: заглушка, если anime не пришёл -->
-	  <div v-else class="content-wrap empty">
-		<p>Данные об аниме не загружены</p>
-	  </div>
+	</section>
 	</template>
 	
 	<style scoped>
-	.content-wrap {
-	  position: relative;
-	}
-	
-	.title-row h2 {
-	  font-weight: 600;
-	  letter-spacing: 0.2px;
-	  display: -webkit-box;
-	  -webkit-line-clamp: 3;
-	  -webkit-box-orient: vertical;
-	  overflow: hidden;
-	  text-overflow: ellipsis;
-	  margin: 0;
-	}
-	
-	.alt-title {
-	  margin-top: 4px;
-	  opacity: 0.6;
-	  margin-bottom: 0;
-	}
-	
-	.meta-strip {
+	.anime-info {
 	  display: flex;
-	  flex-wrap: wrap;
-	  gap: 14px;
-	  margin: 20px 0;
+	  flex-direction: column;
+	  gap: 28px;
+	}
+	
+	/* HEADER */
+	.header {
+	  border-bottom: 1px solid rgba(255,255,255,.08);
+	  padding-bottom: 20px;
+	}
+	
+	.title {
+	  font-size: 2.1rem;
+	  font-weight: 700;
+	}
+	
+	.breadcrumbs {
+	  display: flex;
+	  align-items: center;
+	  gap: 8px;
 	  font-size: 0.85rem;
+	  color: #9ca3af;
+	  margin-top: 12px;
 	}
 	
-	.meta-strip span {
-	  padding: 6px 14px;
-	  background: rgba(255, 255, 255, 0.05);
-	  border-radius: 10px;
-	}
-	
-	.meta-secondary {
-	  display: inline-flex;
-	  align-items: center;
-	  gap: 6px;
-	  padding: 4px 10px;
-	  border-radius: 8px;
-	  margin-bottom: 1.2em;
-	  font-size: 0.78rem;
-	  font-weight: 500;
-	  background: rgba(255, 255, 255, 0.06);
-	  color: #e5e7eb;
-	  border: 1px solid rgba(255, 255, 255, 0.12);
-	}
-	
-	.actions-row {
-	  display: flex;
-	  flex-wrap: wrap;
-	  gap: 12px;
-	  margin-bottom: 26px;
-	}
-	
-	.actions-row button {
-	  width: 42px;
-	  height: 42px;
-	  border-radius: 10px;
-	  background: rgba(255, 255, 255, 0.04);
-	  border: 1px solid rgba(255, 255, 255, 0.06);
-	  color: #e6e6eb;
-	  cursor: pointer;
-	  display: flex;
-	  align-items: center;
-	  justify-content: center;
-	  transition: background 0.2s ease;
-	}
-	
-	.actions-row button:hover {
-	  background: rgba(255, 255, 255, 0.1);
-	}
+	.crumb { white-space: nowrap; }
+	.sep { opacity: 0.4; }
+	.status { color: #60a5fa; }
+	.season { color: #a5b4fc; }
 	
 	.genres {
-	  display: flex;
-	  flex-wrap: wrap;
-	  align-items: center;
-	  gap: 10px;
-	  margin: 14px 0 18px;
-	}
-	
-	.genre-list {
+	  margin-top: 14px;
 	  display: flex;
 	  flex-wrap: wrap;
 	  gap: 8px;
 	}
-	
-	.genre {
-	  font-size: 1.02rem;
-	  padding: 5px 12px;
+	.genres span {
+	  padding: 4px 12px;
 	  border-radius: 999px;
-	  color: #c7c9ff;
-	  border: 1px solid rgba(255, 255, 255, 0.08);
-	  background: rgba(255, 255, 255, 0.03);
+	  font-size: .75rem;
+	  background: rgba(99,102,241,.15);
+	  color: #c7d2fe;
 	}
 	
-	.footer-info {
-	  margin-top: 26px;
-	  font-size: 0.85rem;
-	  color: #9ca3af;
+	/* CONTENT */
+	.content {
+	  display: grid;
+	  grid-template-columns: 1fr 260px;
+	  gap: 32px;
 	}
 	
-	.studios {
-	  position: absolute;
-	  top: 0;
-	  right: 0;
-	  font-size: 1.75rem;
-	  color: #aab0ff;
-	  opacity: 0.85;
-	  text-align: right;
+	/* MAIN */
+	.main {
+	  display: flex;
+	  flex-direction: column;
+	  gap: 20px;
+	}
+	.block h3 { font-size: .9rem; opacity: .6; margin-bottom: 6px; }
+	.title-row { display: flex; gap: 12px; font-size: 0.85rem; line-height: 1.4; }
+	.label { min-width: 70px; opacity: .55; }
+	.value { font-weight: 500; color: #e5e7eb; }
+	
+	/* SIDEBAR */
+	.sidebar {
+	  border-left: 1px solid rgba(255,255,255,.08);
+	  padding-left: 20px;
+	  display: flex;
+	  flex-direction: column;
+	  gap: 12px;
 	}
 	
+	.stat {
+	  display: flex;
+	  justify-content: space-between;
+	  font-size: .85rem;
+	}
+	.stat span { opacity: .55; }
+	
+	/* Рейтинги по источникам */
 	.rating-sources {
 	  display: flex;
 	  flex-wrap: wrap;
 	  gap: 12px;
-	  margin: 12px 0 1em;
+	  margin-bottom: 12px;
 	}
-	
-	.rating-badge {
-	  display: inline-flex;
+	.rating-sources .source {
+	  display: flex;
 	  align-items: center;
-	  gap: 6px;
-	  padding: 4px 10px;
-	  border-radius: 8px;
-	  font-size: 0.78rem;
-	  font-weight: 500;
-	  background: rgba(255, 255, 255, 0.06);
-	  color: #e5e7eb;
-	  border: 1px solid rgba(255, 255, 255, 0.12);
+	  gap: 4px;
 	}
+	.rating-sources .source-name { opacity: 0.6; }
+	.rating-sources .source-score { font-weight: 600; }
 	
-	.rating-badge .source {
-	  opacity: 0.6;
-	  font-weight: 400;
-	}
-	
-	.rating-badge .value {
-	  font-weight: 600;
-	  font-size: 0.82rem;
-	}
-	
-	/* Цвета по источникам */
-	.rating-badge.anilist {
-	  border-color: rgba(59, 130, 246, 0.45);
-	  color: #93c5fd;
-	}
-	
-	.rating-badge.kinopoisk {
-	  border-color: rgba(245, 158, 11, 0.45);
-	  color: #facc15;
-	}
-	
-	.rating-badge.shikimori {
-	  border-color: rgba(239, 68, 68, 0.45);
-	  color: #fca5a5;
-	}
-	
-	.rating-badge.disabled {
-	  opacity: 0.35;
-	  border-style: dashed;
-	}
-	
-	/* Заглушка, если данных нет */
-	.content-wrap.empty {
-	  opacity: 0.6;
-	  text-align: center;
-	  padding: 40px 0;
+	/* MOBILE */
+	@media (max-width: 900px) {
+	  .content { grid-template-columns: 1fr; }
+	  .sidebar { border-left: none; padding-left: 0; }
 	}
 	</style>
+	

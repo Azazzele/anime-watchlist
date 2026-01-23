@@ -3,6 +3,7 @@
   import Card from '../ui/Card.vue'
   import CharacterBithday from '../ui/CharacterBithday.vue'
   
+  /* ===================== TYPES ===================== */
   interface Anime {
     id: number
     title: {
@@ -22,8 +23,8 @@
   }
   
   /* ===================== SEASON ===================== */
-  const seasonName = ref('')
-  const seasonYear = ref('')
+  const seasonName = ref<string>('')
+  const seasonYear = ref<number | null>(null)
   
   function getCurrentSeason() {
     const now = new Date()
@@ -35,9 +36,7 @@
     else if ([6, 7, 8].includes(month)) seasonName.value = 'Summer'
     else seasonName.value = 'Fall'
   
-    const seasonYear = ref<number | null>(null)
     seasonYear.value = year
-
   }
   
   getCurrentSeason()
@@ -50,6 +49,7 @@
   
   /* ===================== SHUFFLE ===================== */
   const shuffledAnimes = computed(() => {
+    if (!animes.value.length) return []
     return [...animes.value].sort(() => Math.random() - 0.5)
   })
   
@@ -71,7 +71,7 @@
       } else if (data?.message) {
         notice.value = data.message
       }
-    } catch {
+    } catch (e) {
       error.value = 'Не удалось загрузить текущий сезон'
     } finally {
       loading.value = false

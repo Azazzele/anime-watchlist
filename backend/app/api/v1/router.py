@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from .endpoints.media import router as media_router
 from .endpoints.season import router as season_router
-from .endpoints.characters import router as characters_router
+from .endpoints.characters_bithday import router as characters_router
 from .endpoints.character import router as character_router
 from .endpoints.staff import router as staff_router
 from .endpoints.user import router as user

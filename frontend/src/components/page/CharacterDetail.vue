@@ -1,71 +1,90 @@
 <script setup lang="ts">
-  import { ref, computed, onMounted, watch } from 'vue'
-  import { useRoute } from 'vue-router'
+  import { ref, computed, watch } from 'vue'
   import Card from '../ui/Card.vue'
   import VoiceActorCard from '../ui/character/VoiceActorCard.vue'
   
-  const route = useRoute()
+  /* ===================== PROPS ===================== */
+  const props = defineProps<{
+    characterId: string | number
+  }>()
   
-  const props = defineProps<{ characterId: string | number }>()
   const characterIdNum = computed(() => Number(props.characterId))
   
-  const character = ref<any>(null)
-  const loading = ref<boolean>(true)
+  /* ===================== STATE ===================== */
+  const character = ref<any | null>(null)
+  const loading = ref(true)
   const error = ref<string | null>(null)
   
+  const favourite = ref(false)
+  
+  /* ===================== DESCRIPTION ===================== */
   const descriptionLang = ref<'ru' | 'en'>('en')
   const descriptionRu = ref<string | null>(null)
   
   const currentDescription = computed(() => {
     if (!character.value) return null
+  
     return descriptionLang.value === 'ru' && descriptionRu.value
       ? descriptionRu.value
-      : character.value.description_en || character.value.description || null
+      : character.value.description_en ||
+          character.value.description ||
+          null
   })
   
   const toggleDescriptionLang = () => {
     descriptionLang.value = descriptionLang.value === 'ru' ? 'en' : 'ru'
   }
   
+  /* ===================== ANIME LIST ===================== */
   const SHOW_LIMIT = 6
   const showAllAnime = ref(false)
+  
   const visibleAnime = computed(() => {
     if (!Array.isArray(character.value?.anime)) return []
-    const list = character.value.anime.filter((a: any) => a?.id)
-    return showAllAnime.value ? list : list.slice(0, SHOW_LIMIT)
+    return showAllAnime.value
+      ? character.value.anime
+      : character.value.anime.slice(0, SHOW_LIMIT)
   })
+  
   const getMediaType = (type?: string) => {
     if (type === 'MANGA') return 'manga'
     if (type === 'NOVEL') return 'ranobe'
     return 'anime'
   }
-
+  
+  /* ===================== UTILS ===================== */
   const formatBirthDate = (dob: any) => {
-    if (!dob || typeof dob !== 'object') return '—'
+    if (!dob) return '—'
+  
+    const months = [
+      'января','февраля','марта','апреля','мая','июня',
+      'июля','августа','сентября','октября','ноября','декабря'
+    ]
+  
     const parts = [
-      dob.day && String(dob.day),
-      dob.month && ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][dob.month-1],
-      dob.year && String(dob.year)
+      dob.day,
+      dob.month ? months[dob.month - 1] : null,
+      dob.year
     ].filter(Boolean)
+  
     return parts.join(' ') || '—'
   }
-
-  const favourite = ref(false)
+  
   const toggleFavourite = () => {
     favourite.value = !favourite.value
-
-    if (character.value) {
-      if (favourite.value) {
-        character.value.favourites = (character.value.favourites || 0) + 1
-      } else {
-        character.value.favourites = Math.max((character.value.favourites || 1) - 1, 0)
-      }
-    }
+  
+    if (!character.value) return
+  
+    character.value.favourites = favourite.value
+      ? (character.value.favourites || 0) + 1
+      : Math.max((character.value.favourites || 1) - 1, 0)
   }
-
+  
+  /* ===================== LOAD CHARACTER ===================== */
   const loadCharacter = async () => {
     loading.value = true
     error.value = null
+    character.value = null
   
     const id = characterIdNum.value
     if (isNaN(id) || id <= 0) {
@@ -77,10 +96,11 @@
     try {
       const res = await fetch(`http://127.0.0.1:8000/character/${id}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  
       const data = await res.json()
   
-      // --- фильтруем японскую актрису и берем только первую ---
-      const japaneseVA = (data.voice_actors || []).filter((va:any) => va.language === 'Japanese')[0] || null
+      const japaneseVA =
+        data.voice_actors?.find((va: any) => va.language === 'Japanese') || null
   
       character.value = {
         ...data,
@@ -89,33 +109,37 @@
     } catch (err) {
       console.error('Ошибка загрузки персонажа:', err)
       error.value = 'Персонаж не найден или ошибка сервера'
-      character.value = null
     } finally {
       loading.value = false
     }
   }
   
-  onMounted(loadCharacter)
-  watch(() => characterIdNum.value, loadCharacter, { immediate: true })
+  /* ===================== WATCH ===================== */
+  watch(characterIdNum, loadCharacter, { immediate: true })
   </script>
   
   <template>
     <div class="character-page">
-      <div v-if="character.favourites" class="stats" >
-                <span class="heart material-symbols-outlined">favorite</span>
-                {{ character.favourites.toLocaleString() }} избранных
-          </div>
       <div v-if="loading" class="loading">Загрузка персонажа…</div>
       <div v-else-if="error" class="error">{{ error }}</div>
+  
       <div v-else-if="character" class="content">
+        <!-- STATS -->
+        <div v-if="character.favourites" class="stats">
+          <span class="material-symbols-outlined heart">favorite</span>
+          {{ character.favourites.toLocaleString() }} избранных
+        </div>
   
         <!-- HERO -->
         <section class="hero">
           <div class="avatar-wrap">
-            <img v-if="character.image_large" :src="character.image_large" class="avatar" alt="Персонаж"/>
+            <img
+              v-if="character.image_large"
+              :src="character.image_large"
+              class="avatar"
+            />
             <div v-else class="avatar-placeholder">Нет фото</div>
-
-            <!-- Кнопка "В избранное" под постером -->
+  
             <div class="poster-actions">
               <button
                 class="fav-btn"
@@ -125,57 +149,60 @@
                 <span class="material-symbols-outlined heart">favorite</span>
                 {{ favourite ? 'В избранном' : 'В избранное' }}
               </button>
-              
-             
             </div>
           </div>
-
+  
           <div class="hero-info-wrap">
             <div class="hero-info">
               <h2 class="hero-title">{{ character.name_full }}</h2>
-              <p v-if="character.name_native" class="hero-native">{{ character.name_native }}</p>
-
+              <p v-if="character.name_native" class="hero-native">
+                {{ character.name_native }}
+              </p>
+  
               <ul>
                 <li v-if="character.age"><span>Возраст:</span> {{ character.age }}</li>
                 <li v-if="character.gender"><span>Пол:</span> {{ character.gender }}</li>
                 <li v-if="character.bloodType"><span>Группа крови:</span> {{ character.bloodType }}</li>
-                <li v-if="character.dateOfBirth"><span>Дата рождения:</span> {{ formatBirthDate(character.dateOfBirth) }}</li>
+                <li v-if="character.dateOfBirth">
+                  <span>Дата рождения:</span>
+                  {{ formatBirthDate(character.dateOfBirth) }}
+                </li>
               </ul>
-
             </div>
-           
-            <!-- Сэйю (только японская) -->
+  
+            <!-- VOICE ACTOR -->
             <section v-if="character.voice_actors?.length" class="voice-actors">
               <h2>Сэйю (Japanese)</h2>
               <div class="va-grid">
                 <VoiceActorCard
                   v-for="actor in character.voice_actors"
                   :key="actor.id"
-                  :actor="{
-                    ...actor,
-                    coverImage: actor.image
-                  }"
+                  :actor="{ ...actor, coverImage: actor.image }"
                 />
               </div>
             </section>
           </div>
         </section>
   
-        <!-- Описание -->
+        <!-- DESCRIPTION -->
         <section v-if="currentDescription" class="description-block">
           <div class="description-header">
             <h2>Описание</h2>
-            <button class="lang-toggle" :disabled="!descriptionRu" @click="toggleDescriptionLang">
-              <span class="material-symbols-outlined">{{ descriptionLang === 'ru' ? 'translate' : 'language' }}</span>
-              <span class="lang-label">{{ descriptionLang.toUpperCase() }}</span>
+            <button
+              class="lang-toggle"
+              :disabled="!descriptionRu"
+              @click="toggleDescriptionLang"
+            >
+              {{ descriptionLang.toUpperCase() }}
             </button>
           </div>
           <div class="description-content" v-html="currentDescription" />
         </section>
   
-        <!-- Аниме -->
+        <!-- ANIME -->
         <section v-if="character.anime?.length" class="anime">
           <h2>Появляется в</h2>
+  
           <div class="anime_wrapper">
             <Card
               v-for="anime in visibleAnime"
@@ -183,18 +210,22 @@
               :media="{
                 id: anime.id,
                 title: anime.title,
-                cover_image_url: anime.coverImage?.large || anime.coverImage?.medium,
-                format: anime.format ?? null,
-                seasonYear: anime.seasonYear ?? null,
-                averageScore: anime.averageScore ?? null
+                cover_image_url: anime.coverImage?.large,
+                format: anime.format,
+                seasonYear: anime.seasonYear,
+                averageScore: anime.averageScore
               }"
               :mediaType="getMediaType(anime.type)"
             />
-
-
           </div>
-          <button v-if="character.anime.length > SHOW_LIMIT" class="show-more" @click="showAllAnime = !showAllAnime">
-            {{ showAllAnime ? 'Скрыть' : 'Показать все' }} ({{ character.anime.length }})
+  
+          <button
+            v-if="character.anime.length > SHOW_LIMIT"
+            class="show-more"
+            @click="showAllAnime = !showAllAnime"
+          >
+            {{ showAllAnime ? 'Скрыть' : 'Показать все' }}
+            ({{ character.anime.length }})
           </button>
         </section>
       </div>

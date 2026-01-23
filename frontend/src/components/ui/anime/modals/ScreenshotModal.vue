@@ -16,7 +16,6 @@
 	
 	<style scoped>
 	.media-overlay {
-	  position: fixed;
 	  inset: 0;
 	  background: rgba(0,0,0,.85);
 	  display: flex;

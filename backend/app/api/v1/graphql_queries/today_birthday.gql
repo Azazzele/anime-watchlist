@@ -1,13 +1,14 @@
 query TODAY_BIRTHDAYS_QUERY($page: Int, $perPage: Int, $sort: [CharacterSort]) {
   Page(page: $page, perPage: $perPage) {
-    characters(
-      isBirthday: true
-      sort: $sort
-    ) {
+    characters(sort: $sort) {
       id
       name {
         full
         native
+      }
+      dateOfBirth {
+        month
+        day
       }
       image {
         large

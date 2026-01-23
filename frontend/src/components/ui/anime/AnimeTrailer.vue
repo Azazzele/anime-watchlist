@@ -10,8 +10,8 @@
 	</script>
 	
 	<template>
+	<h2 class='title_header'>Трейлер и прочие связанные видео</h2>
 	  <section v-if="trailerUrl" class="media-section">
-		<h2 class='title_header'>Трейлер</h2>
 		<div class="trailer-wrap">
 		  <iframe :src="trailerUrl" title="Trailer" allowfullscreen />
 		</div>
@@ -20,26 +20,48 @@
 	
 	<style scoped>
 	.media-section {
-	  max-width: 480px;
-	  margin: 80px auto;
-	  padding: 0 32px;
-	}
+    display: flex;
+    padding: 0 16px;
+    justify-content: start;
+}
+
+/* Контейнер трейлера */
+.trailer-wrap {
 	
-	.trailer-wrap {
-	  position: relative;
-	  padding-bottom: 56.25%; /* 16:9 */
-	  height: 0;
-	  overflow: hidden;
-	  border-radius: 30px;
-	  border-color: none !important;
-	  margin-bottom: 10.5em;
-	}
-	
-	.trailer-wrap iframe {
-	  position: absolute;
-	  top: 0;
-	  left: 0;
-	  width: 100%;
-	  height: 100%;
-	}
+  position: relative;
+  max-width: 560px;    
+  margin-left: 30px;           
+  aspect-ratio: 16 / 9;    
+  overflow: hidden;
+  border-radius: 24px;
+
+  background: #0b0d14;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* iframe */
+.trailer-wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .media-section {
+    margin: 56px auto;
+  }
+
+  .title_header {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  .trailer-wrap {
+    border-radius: 18px;
+  }
+}
+
 	</style>

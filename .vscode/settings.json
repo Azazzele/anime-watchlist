@@ -1,5 +1,6 @@
 {
 	"cSpell.words": [
 		"невалиден"
-	]
+	],
+	"C_Cpp.errorSquiggles": "enabled"
 }

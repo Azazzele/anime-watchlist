@@ -113,11 +113,12 @@ class StreamingEpisode(BaseModel):
 
 class FullAnimeDetails(BaseModel):
     id: int
+    type: Literal["ANIME", "MANGA", "NOVEL"]
     title: Title
-    type: Optional[Literal["ANIME", "MANGA"]] = "ANIME"
     staff: Optional[Staff] = None
     format: Optional[str] = None
     status: Optional[str] = None
+    source: Optional[str] = None 
     description: Optional[str] = None
     season: Optional[str] = None
     seasonYear: Optional[int] = None
