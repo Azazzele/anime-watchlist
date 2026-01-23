@@ -2,5 +2,6 @@
 	"cSpell.words": [
 		"невалиден"
 	],
-	"C_Cpp.errorSquiggles": "enabled"
+	"C_Cpp.errorSquiggles": "enabled",
+	"cmake.sourceDirectory": "I:/projects/WordAnimation/access-control"
 }
